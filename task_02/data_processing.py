@@ -27,11 +27,13 @@ import functions as fu
 
 # Constants
 # -----------------------------------------------------------------------------
+
 gravity_constant    = 3.986005000e+14   # m^3 / (kg * s^2)
 normal_gravity      = 9.80665           # m / s^2
 radius              = 6.378137000e+06   # m
 height              = radius+450000     # m
-degree_n            = 40                
+degree_n            = 40
+order_m             = 20                
 rho_grad            = 180/np.pi
 
 # Functions
@@ -121,6 +123,61 @@ def substract_matrices(matrix1, matrix2):
 
     return(matrix)
             
+
+def calculate_spherical_harmonics(norm_C, norm_S, longitudes, colatitudes):
+    print(f'[Info] Evaluating spherical harmonics')
+    T = np.zeros((len(colatitudes), len(longitudes)))
+    Delta_g_surface = np.zeros((len(colatitudes), len(longitudes)))
+    Delta_g_satellite = np.zeros((len(colatitudes), len(longitudes)))
+    P = []
+
+    # loop over all co-latitudes
+    for colat in colatitudes:
+        # calculate legendre functions for current theta
+        P = fu.legendreFunctions(colat/rho_grad, degree_n)
+        
+        # loop over all longitudes
+        for long in longitudes:
+            print(f' Co-Lat: {int(colat+1):03d}, Long: {int(long+1):+04d}', end="\r")
+            # initialize spherical harmonic sum with zero
+            T_sum = 0
+            Delta_g_surface_sum = 0
+            Delta_g_satellite_sum = 0
+            Spherical_Harmonics_sum = 0
+            
+            # loop over all degrees
+            for n in range(degree_n):
+                T_n = 1**(n+1)
+                Delta_g_surface_n = ((n-1)/radius) * 1**(n+1)
+                Delta_g_satellite_n = ((n-1)/height) * (radius/height)**(n+1)
+
+                # loop over all orders
+                for m in range(order_m):
+                    Spherical_Harmonics_sum += norm_C[n,m] * P[n,m] * np.cos((m*long/rho_grad)) + norm_S[n,m] * P[n,m] * np.sin((m*long/rho_grad))
+                
+                # apply degree-dependent factor and add sum to current value of
+                # 1) disturbing potential
+                # 2) gravity anomaly
+                # 3) gravity anomaly in satellite altitude
+                T_sum += T_n * Spherical_Harmonics_sum
+                Delta_g_surface_sum += Delta_g_surface_n * Spherical_Harmonics_sum
+                Delta_g_satellite_sum += Delta_g_satellite_n * Spherical_Harmonics_sum
+                
+                # reset spherical harmonic sum to zero for the next iteration
+                Spherical_Harmonics_sum = 0
+            
+            T[np.invert(int(colat))][int(long) + 180] = T_sum
+            Delta_g_surface[np.invert(int(colat))][int(long) + 180] = Delta_g_surface_sum
+            Delta_g_satellite[np.invert(int(colat))][int(long) + 180] = Delta_g_satellite_sum
+    
+    # multiply disturbing potential and geoid anomalies with leading factor
+    T_geoid_anomalies = (gravity_constant/radius) * T
+    gravity_anomalies_surface = ((gravity_constant/radius) * Delta_g_surface) * 1000
+    gravity_anomalies_satellite = ((gravity_constant/radius) * Delta_g_satellite) * 1000
+    
+    # convert disturbing potential to geoid heights
+    N = T_geoid_anomalies / (gravity_constant/radius**2)
+    return(N, gravity_anomalies_surface, gravity_anomalies_satellite)
     
 
 
@@ -160,5 +217,4 @@ if __name__ == '__main__':
     colatitudes_vector = np.array(np.linspace(0, 180, 181))
 
     # Calculating the spherical harmonics
-    
-    
+    N, gravity_anomalies_surface, gravity_anomalies_satellite = calculate_spherical_harmonics(data_norm_c, data_norm_s, longitudes_vector, colatitudes_vector)
