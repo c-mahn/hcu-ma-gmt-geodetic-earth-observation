@@ -70,5 +70,5 @@ if __name__ == '__main__':
     os.makedirs("processed_data", exist_ok=True)
     __run_script("data_processing.py")
     os.makedirs("plots", exist_ok=True)
-    __run_script("data_plotting.py")
+    # __run_script("data_plotting.py")
     print("[INFO] All calculations have ended.")

@@ -24,7 +24,6 @@ import os
 # from scipy.fft import fft, fftfreq
 # from scipy import signal
 import functions as fu
-import csv
 
 # Constants
 # -----------------------------------------------------------------------------
@@ -207,8 +206,13 @@ if __name__ == '__main__':
     data_grs80 = import_gfc("GRS80.gfc")
     
     # Importing polygon defining the region
-    
-
+    with open(os.path.join("data", "region_polygon.txt"), 'r') as file:
+        region = file.readlines()
+    for line_index, line in enumerate(region):
+        region[line_index] = line.split(",")
+        for entry_index, entry in enumerate(region[line_index]):
+            region[line_index][entry_index] = float(entry)
+    print(f'[Info] Region polygon imported')
 
     # Assembling the matrices
     itg_c = assemble_matrix(data_ITG, "C")
@@ -294,6 +298,3 @@ if __name__ == '__main__':
     fu.save_global_grid(os.path.join("data","grav_anom_surface.nc"), gravity_anomalies_surface)
     fu.save_global_grid(os.path.join("data","grav_anom_satellite.nc"), gravity_anomalies_satellite)
     '''
-    # Import of
-    with open(os.path.join("data", "region_polygon.txt"), 'r') as f:
-        data = f.readlines()
