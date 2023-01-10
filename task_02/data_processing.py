@@ -170,6 +170,11 @@ if __name__ == '__main__':
             date = filename.split("_")[-1]
             itsg_grace_datasets.append({"date": date, "data": data})
     print(f'[Info] {len(itsg_grace_datasets)} GRACE datasets imported')
+    
+    
+    for itsg_grace in itsg_grace_datasets:
+        dataset = itsg_grace["data"]
+        date = itsg_grace["date"]
 
 
 
