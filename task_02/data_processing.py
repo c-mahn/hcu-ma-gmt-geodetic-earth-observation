@@ -31,6 +31,7 @@ import functions as fu
 gravity_constant    = 3.986005000e+14   # m^3 / (kg * s^2)
 normal_gravity      = 9.80665           # m / s^2
 radius              = 6.378137000e+06   # m
+mass                = 5.9722*10**24     # kg
 height              = radius+450000     # m
 degree_n            = 96
 order_m             = 20                
@@ -189,17 +190,39 @@ if __name__ == '__main__':
    
     # Importing the data from Grace's gravity field model
     itsg_grace_2018 = import_gfc("ITSG-Grace2018s.gfc")
+    
+    # Importing the load Love Numbers Gegout97
+    with open(os.path.join("data", "loadLoveNumbers_Gegout97.txt"), 'r') as file:
+        load_love_numbers = file.readlines()
+    for entry_index, entry in enumerate(load_love_numbers):
+        load_love_numbers[entry_index] = float(entry)
+        print(f'[Info] LoadLoveNumbers imported')
 
     # Assemble matrices
     itsg_grace_2018_matrix_c = assemble_matrix(itsg_grace_2018, value_index="C")
     itsg_grace_2018_matrix_s = assemble_matrix(itsg_grace_2018, value_index="S")
-              
+    load_love_numbers_vector = np.array(load_love_numbers)
+
+    # Defining a vector with all longitudes from -180° to 180° (1-degree spacing)
+    longitudes_vector = np.array(np.linspace(-180, 180, 361))
+
+    # Defining a vector with all co-latitudes from 0° to 180° (1-degree spacing)
+    colatitudes_vector = np.array(np.linspace(0, 180, 181))
+
+    # Converting the longitudes vector into radians
+    longitudes_vector_rad = longitudes_vector / rho_grad
+
+    # Converting the co-latitudes vector into radians
+    colatitudes_vector_rad = colatitudes_vector / rho_grad
+
+    ewh = []
+
     for itsg_grace in itsg_grace_datasets:
         itsg_grace_dataset = itsg_grace["data"]
         date = itsg_grace["date"]
         deg1_dataset = []
         for dataset in deg1_datasets:
-            # Get the corrosponding dataset
+            # Get the corresponding dataset
             if(dataset["date"] == date):
                 deg1_dataset = dataset["data"]
                 break
@@ -223,9 +246,8 @@ if __name__ == '__main__':
         current_c = matrix_math(current_c, itsg_grace_2018_matrix_c, operator="-")
         current_s = matrix_math(current_s, itsg_grace_2018_matrix_s, operator="-")
 
-        for n in range(degree_n):
-            for m in range(order_m):
 
+        # ewh += fu.calc_EWH_fast(long, lat, n, m, current_c, current_s, mass, radius, rho_water, load_love_numbers_vector)
 
 
     ''' 
