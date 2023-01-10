@@ -24,6 +24,7 @@ import os
 # from scipy.fft import fft, fftfreq
 # from scipy import signal
 import functions as fu
+import csv
 
 # Constants
 # -----------------------------------------------------------------------------
@@ -229,7 +230,8 @@ if __name__ == '__main__':
 
     # Defining a vector with all co-latitudes from 0° to 180° (1-degree spacing)
     colatitudes_vector = np.array(np.linspace(0, 180, 181))
-
+    
+    ''' 
     # Calculating the gravity anomalies
     # ---------------------------------
 
@@ -291,3 +293,7 @@ if __name__ == '__main__':
     fu.save_global_grid(os.path.join("data","geoid_height.nc"), N)
     fu.save_global_grid(os.path.join("data","grav_anom_surface.nc"), gravity_anomalies_surface)
     fu.save_global_grid(os.path.join("data","grav_anom_satellite.nc"), gravity_anomalies_satellite)
+    '''
+    # Import of
+    with open(os.path.join("data", "region_polygon.txt"), 'r') as f:
+        data = f.readlines()
