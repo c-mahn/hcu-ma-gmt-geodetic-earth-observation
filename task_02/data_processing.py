@@ -185,7 +185,7 @@ if __name__ == '__main__':
     
     # Import deg1 data
     deg1_datasets = import_gfc_from_folder("deg1")
-    
+   
     
     for itsg_grace in itsg_grace_datasets:
         itsg_grace_dataset = itsg_grace["data"]
@@ -196,9 +196,14 @@ if __name__ == '__main__':
             if(dataset["date"] == date):
                 deg1_dataset = dataset["data"]
                 break
-        print(f'itsg_grace: {itsg_grace_dataset}, deg1: {deg1_dataset}')
-
-
+        itsg_grace_matrix_c = assemble_matrix(itsg_grace_dataset, value_index="C")
+        deg1_matrix_c = assemble_matrix(deg1_dataset, value_index="C")
+        itsg_grace_matrix_s = assemble_matrix(itsg_grace_dataset, value_index="S")
+        deg1_matrix_s = assemble_matrix(deg1_dataset, value_index="S")
+        itsg_grace_matrix_sigma_c = assemble_matrix(itsg_grace_dataset, value_index="sigma_C")
+        deg1_matrix_sigma_c = assemble_matrix(deg1_dataset, value_index="sigma_C")
+        itsg_grace_matrix_sigma_s = assemble_matrix(itsg_grace_dataset, value_index="sigma_S")
+        deg1_matrix_sigma_s = assemble_matrix(deg1_dataset, value_index="sigma_S")
 
 
 
