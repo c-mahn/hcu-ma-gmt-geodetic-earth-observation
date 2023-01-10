@@ -196,6 +196,8 @@ if __name__ == '__main__':
             if(dataset["date"] == date):
                 deg1_dataset = dataset["data"]
                 break
+        
+        # Assembling the matrices
         itsg_grace_matrix_c = assemble_matrix(itsg_grace_dataset, value_index="C")
         deg1_matrix_c = assemble_matrix(deg1_dataset, value_index="C")
         itsg_grace_matrix_s = assemble_matrix(itsg_grace_dataset, value_index="S")
@@ -204,6 +206,12 @@ if __name__ == '__main__':
         deg1_matrix_sigma_c = assemble_matrix(deg1_dataset, value_index="sigma_C")
         itsg_grace_matrix_sigma_s = assemble_matrix(itsg_grace_dataset, value_index="sigma_S")
         deg1_matrix_sigma_s = assemble_matrix(deg1_dataset, value_index="sigma_S")
+        
+        # Removing the static part of the grace observations
+        current_c = matrix_math(itsg_grace_matrix_c, deg1_matrix_c, operator="-")
+        current_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_s, operator="-")
+        current_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, deg1_matrix_sigma_c, operator="-")
+        current_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, deg1_matrix_sigma_s, operator="-")
 
 
 
