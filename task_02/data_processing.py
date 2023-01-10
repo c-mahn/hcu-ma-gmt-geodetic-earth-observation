@@ -138,7 +138,7 @@ def calculate_spherical_harmonics(norm_C, norm_S, longitudes, colatitudes):
         
         # loop over all longitudes
         for long in longitudes:
-            print(f' Co-Lat: {int(colat+1):03d}, Long: {int(long+1):+04d}', end="\r")
+            print(f' Co-Latitude: {int(colat+1):03d}, Longitude: {int(long+1):+04d}', end="\r")
             # initialize spherical harmonic sum with zero
             T_sum = 0
             Delta_g_surface_sum = 0
@@ -195,6 +195,10 @@ if __name__ == '__main__':
     # Importing the data from the normal gravity field model
     data_grs80 = import_gfc("GRS80.gfc")
     
+    # Importing polygon defining the region
+    
+
+
     # Assembling the matrices
     itg_c = assemble_matrix(data_ITG, "C")
     itg_s = assemble_matrix(data_ITG, "S")
@@ -218,7 +222,3 @@ if __name__ == '__main__':
 
     # Calculating the spherical harmonics
     N, gravity_anomalies_surface, gravity_anomalies_satellite = calculate_spherical_harmonics(data_norm_c, data_norm_s, longitudes_vector, colatitudes_vector)
-    
-    fu.save_global_grid(os.path.join("data","geoid_height.nc"), N)
-    fu.save_global_grid(os.path.join("data","grav_anom_surface.nc"), gravity_anomalies_surface)
-    fu.save_global_grid(os.path.join("data","grav_anom_satellite.nc"), gravity_anomalies_satellite)

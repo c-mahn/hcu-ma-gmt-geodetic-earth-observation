@@ -1,7 +1,5 @@
 import numpy as np
 import math
-import netCDF4 as nc
-import os
 from matplotlib import path
 
 legendreFactor1 = np.array([])
@@ -12,7 +10,7 @@ def legendreFunctions(theta, maxDegree):
 	global legendreFactor2
 	
 	if (legendreFactor1.shape[0] < maxDegree+1):
-		print("Calculating Legendre Factors")
+		print("Calc Legendre Factors")
 		legendreFactor1 = np.zeros([maxDegree+1,maxDegree+1],order='F')
 		legendreFactor2 = np.zeros([maxDegree+1,maxDegree+1],order='F')
 		legendreFactor1[1,1] = math.sqrt(3) 
@@ -40,31 +38,6 @@ def legendreFunctions(theta, maxDegree):
 			
 	return Pnm
 
-
-def save_global_grid(filename,grid):
-   
-    nlon = grid.shape[1]
-    nlat = grid.shape[0]
-    
-    lon = np.arange(-math.floor(nlon/2),math.floor(nlon/2),1)
-    lat = np.arange(-math.floor(nlat/2),math.floor(nlat/2),1)
-    
-    if os.path.exists(filename):
-        os.remove(filename)
-    
-    f = nc.Dataset(filename,'w', format='NETCDF4') #'w' stands for write
-    f.createDimension('lon', nlon)
-    f.createDimension('lat', nlat)
-    
-    longitude = f.createVariable('lon', 'f4', 'lon')
-    latitude = f.createVariable('lat', 'f4', 'lat')  
-    data = f.createVariable('data', 'f4', ('lat','lon'))
-    
-    longitude[:] = lon #The "[:]" at the end of the variable instance is necessary
-    latitude[:] = lat
-    data[:,:] = grid
-    
-    f.close()
 
 def readData(filename,numskip):
     data = np.loadtxt(filename,skiprows=numskip,usecols=(1,2,3,4))
@@ -253,4 +226,5 @@ def interp_missing_months(values):
             k = k+1
             
     return dec_yr, values_interp
+
 
