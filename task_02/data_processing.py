@@ -32,9 +32,10 @@ gravity_constant    = 3.986005000e+14   # m^3 / (kg * s^2)
 normal_gravity      = 9.80665           # m / s^2
 radius              = 6.378137000e+06   # m
 height              = radius+450000     # m
-degree_n            = 40
+degree_n            = 96
 order_m             = 20                
 rho_grad            = 180/np.pi
+rho_water           = 1000              # kg / m^3  
 grid_spacing        = 1
 
 # Functions
@@ -186,7 +187,13 @@ if __name__ == '__main__':
     # Import deg1 data
     deg1_datasets = import_gfc_from_folder("deg1")
    
-    
+    # Importing the data from Grace's gravity field model
+    itsg_grace_2018 = import_gfc("ITSG-Grace2018s.gfc")
+
+    # Assemble matrices
+    itsg_grace_2018_matrix_c = assemble_matrix(itsg_grace_2018, value_index="C")
+    itsg_grace_2018_matrix_s = assemble_matrix(itsg_grace_2018, value_index="S")
+              
     for itsg_grace in itsg_grace_datasets:
         itsg_grace_dataset = itsg_grace["data"]
         date = itsg_grace["date"]
@@ -212,6 +219,12 @@ if __name__ == '__main__':
         current_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_s, operator="-")
         current_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, deg1_matrix_sigma_c, operator="-")
         current_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, deg1_matrix_sigma_s, operator="-")
+
+        current_c = matrix_math(current_c, itsg_grace_2018_matrix_c, operator="-")
+        current_s = matrix_math(current_s, itsg_grace_2018_matrix_s, operator="-")
+
+        for n in range(degree_n):
+            for m in range(order_m):
 
 
 
