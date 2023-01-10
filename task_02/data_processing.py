@@ -35,6 +35,7 @@ height              = radius+450000     # m
 degree_n            = 40
 order_m             = 20                
 rho_grad            = 180/np.pi
+grid_spacing        = 1
 
 # Functions
 # -----------------------------------------------------------------------------
@@ -130,8 +131,30 @@ def matrix_math(matrix1, matrix2, operator="+"):
                 matrix[i][j] /= matrix2[i][j]
 
     return(matrix)
-            
 
+# Beginning of the Main Programm
+# -----------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    
+    # Importing data
+    # - - - - - - - -
+    
+    # Importing polygon defining the region
+    with open(os.path.join("data", "region_polygon.txt"), 'r') as file:
+        region = file.readlines()
+    for line_index, line in enumerate(region):
+        region[line_index] = line.split(",")
+        for entry_index, entry in enumerate(region[line_index]):
+            region[line_index][entry_index] = float(entry)
+    print(f'[Info] Region polygon imported')
+
+    # Getting the Coordinates from the polygon
+    region_grid = fu.getGridfromPolygon(region, grid_spacing)
+    print(region_grid)
+    
+    ''' 
+    
 def calculate_spherical_Harmonics(norm_C, norm_S, longitudes, colatitudes):
     print(f'[Info] Evaluating spherical harmonics')
     T = np.zeros((len(colatitudes), len(longitudes)))
@@ -191,28 +214,12 @@ def calculate_spherical_Harmonics(norm_C, norm_S, longitudes, colatitudes):
     
 
 
-# Beginning of the Main Programm
-# -----------------------------------------------------------------------------
-
-if __name__ == '__main__':
-    
-    # Importing data
-    # - - - - - - - -
-    
     # Importing the data from Grace's gravity field model
     data_ITG = import_gfc("ITG-Grace2010s.gfc")
     
     # Importing the data from the normal gravity field model
     data_grs80 = import_gfc("GRS80.gfc")
-    
-    # Importing polygon defining the region
-    with open(os.path.join("data", "region_polygon.txt"), 'r') as file:
-        region = file.readlines()
-    for line_index, line in enumerate(region):
-        region[line_index] = line.split(",")
-        for entry_index, entry in enumerate(region[line_index]):
-            region[line_index][entry_index] = float(entry)
-    print(f'[Info] Region polygon imported')
+
 
     # Assembling the matrices
     itg_c = assemble_matrix(data_ITG, "C")
@@ -234,8 +241,8 @@ if __name__ == '__main__':
 
     # Defining a vector with all co-latitudes from 0° to 180° (1-degree spacing)
     colatitudes_vector = np.array(np.linspace(0, 180, 181))
-    
-    ''' 
+   
+
     # Calculating the gravity anomalies
     # ---------------------------------
 
