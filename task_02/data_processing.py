@@ -40,7 +40,7 @@ grid_spacing        = 1
 # Functions
 # -----------------------------------------------------------------------------
 
-def import_gfc(filename, ignore_until="end_of_head"):
+def import_gfc(filename):
     """
     This function is used to import gfc-files.
 
@@ -49,6 +49,7 @@ def import_gfc(filename, ignore_until="end_of_head"):
         ignore_until (str, optional): This is the key until everthing in the header will be ignored. Defaults to "end_of_head".
     """
     print(f'[Info] Importing file "{filename}" as gfc-file')
+    ignore_until="end_of_head"
     ignore = True
     data = []
     for line in open(os.path.join("data", filename)):  # Open file and read line by line
@@ -70,6 +71,24 @@ def import_gfc(filename, ignore_until="end_of_head"):
                         "sigma_S": float(line[6])}
                 data.append(line)
     return(data)
+
+
+def import_gfc_from_folder(path):
+    """
+    This function is used to import all gfc-files from a folder.
+
+    Args:
+        path (str): This is the path to the folder, that contains the gfc-files.
+    """
+    print(f'[Info] Importing all gfc-files from folder "./data/{path}"')
+    gfc_datasets = []
+    for filename in os.listdir(os.path.join("data", path)):
+        if filename.endswith(".gfc"):
+            data = import_gfc(os.path.join(path, filename))
+            filename = filename.split(".")[0]
+            date = filename.split("_")[-1]
+            gfc_datasets.append({"date": date, "data": data})
+    return(gfc_datasets)
 
 
 def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
@@ -129,8 +148,8 @@ def matrix_math(matrix1, matrix2, operator="+"):
                 matrix[i][j] *= matrix2[i][j]
             elif(operator == "/"):
                 matrix[i][j] /= matrix2[i][j]
-
     return(matrix)
+    
 
 # Beginning of the Main Programm
 # -----------------------------------------------------------------------------
@@ -162,19 +181,21 @@ if __name__ == '__main__':
     print(f'[Info] Region bounding box imported')
 
     # Import GRACE data
-    itsg_grace_datasets = []
-    for filename in os.listdir(os.path.join("data", "ITSG-Grace")):
-        if filename.endswith(".gfc"):
-            data = import_gfc(os.path.join("ITSG-Grace", filename))
-            filename = filename.split(".")[0]
-            date = filename.split("_")[-1]
-            itsg_grace_datasets.append({"date": date, "data": data})
-    print(f'[Info] {len(itsg_grace_datasets)} GRACE datasets imported')
+    itsg_grace_datasets = import_gfc_from_folder("ITSG-Grace")
+    
+    # Import deg1 data
+    deg1_datasets = import_gfc_from_folder("deg1")
     
     
     for itsg_grace in itsg_grace_datasets:
         dataset = itsg_grace["data"]
         date = itsg_grace["date"]
+        deg1_dataset = []
+        for dataset in deg1_datasets:
+            # Get the corrosponding dataset
+            if(dataset["date"] == date):
+                deg1_dataset = dataset["data"]
+                break
 
 
 
