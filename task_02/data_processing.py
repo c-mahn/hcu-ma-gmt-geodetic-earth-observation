@@ -218,3 +218,7 @@ if __name__ == '__main__':
 
     # Calculating the spherical harmonics
     N, gravity_anomalies_surface, gravity_anomalies_satellite = calculate_spherical_harmonics(data_norm_c, data_norm_s, longitudes_vector, colatitudes_vector)
+    
+    fu.save_global_grid(os.path.join("data","geoid_height.nc"), N)
+    fu.save_global_grid(os.path.join("data","grav_anom_surface.nc"), gravity_anomalies_surface)
+    fu.save_global_grid(os.path.join("data","grav_anom_satellite.nc"), gravity_anomalies_satellite)
