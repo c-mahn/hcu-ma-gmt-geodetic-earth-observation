@@ -149,10 +149,8 @@ if __name__ == '__main__':
             region[line_index][entry_index] = float(entry)
     print(f'[Info] Region polygon imported')
 
-
     # Getting the region grid from the polygon
     region_grid = fu.getGridfromPolygon(np.array(region), grid_spacing)
-    print(region_grid)
 
     # Importing polygon defining the bounding box
     with open(os.path.join("data", "region_bounding_box.txt"), 'r') as file:
@@ -163,6 +161,8 @@ if __name__ == '__main__':
             bounding_box[line_index][entry_index] = float(entry)
     print(f'[Info] Region bounding box imported')
 
+    # Import GRACE data
+    
     ''' 
     
 def calculate_spherical_Harmonics(norm_C, norm_S, longitudes, colatitudes):
@@ -251,4 +251,67 @@ def calculate_spherical_Harmonics(norm_C, norm_S, longitudes, colatitudes):
 
     # Defining a vector with all co-latitudes from 0° to 180° (1-degree spacing)
     colatitudes_vector = np.array(np.linspace(0, 180, 181))
+   
+
+    # Calculating the gravity anomalies
+    # ---------------------------------
+
+    # Defining the degree and order of the spherical harmonics
+    T = np.zeros((len(colatitudes_vector), len(longitudes_vector)))
+    delta_g_surface = np.zeros((len(colatitudes_vector), len(longitudes_vector)))
+    delta_g_satellite = np.zeros((len(colatitudes_vector), len(longitudes_vector)))
+    P_NxM = []
+
+    # loop over all co-latitudes
+    for i in colatitudes_vector:
+        # calculate legendre functions for current theta
+        P_NxM = fu.legendreFunctions(i/rho_grad, degree_n)
+        
+        # loop over all longitudes
+        for j in longitudes_vector:
+            print(f' Co-Lat: {int(i+1):03d}, Long: {int(j+1):+04d}', end="\r")
+            # initialize spherical harmonic sum with zero
+            T_sum = 0
+            delta_g_surface_sum = 0
+            delta_g_satellite_sum = 0
+            spherical_Harmonics_sum = 0
+            
+            # loop over all degrees
+            for k in range(degree_n):
+                T_n = 1**(k+1)
+                delta_g_surface_n = ((k-1)/radius) * 1**(k+1)
+                delta_g_satellite_n = ((k-1)/height) * (radius/height)**(k+1)
+                for l in range(degree_n):
+                    spherical_Harmonics_sum += data_norm_c[k,l] * P_NxM[k,l] * np.cos((l*j/rho_grad)) + data_norm_s[k,l] * P_NxM[k,l] * np.sin((l*j/rho_grad))
+                
+                # apply degree-dependent factor and add sum to current value of
+                # 1) disturbing potential
+                # 2) gravity anomaly
+                # 3) gravity anomaly in satellite altitude
+                T_sum += T_n * spherical_Harmonics_sum
+                delta_g_surface_sum += delta_g_surface_n * spherical_Harmonics_sum
+                delta_g_satellite_sum += delta_g_satellite_n * spherical_Harmonics_sum
+                
+                # reset spherical harmonic sum to zero for the next iteration
+                spherical_Harmonics_sum = 0
+            
+            T[np.invert(int(i))][int(j) + 180] = T_sum
+            delta_g_surface[np.invert(int(i))][int(j) + 180] = delta_g_surface_sum
+            delta_g_satellite[np.invert(int(i))][int(j) + 180] = delta_g_satellite_sum
+    
+    # multiply disturbing potential and geoid anomalies with leading factor
+    T_geoid_anomalies = (gravity_constant/radius) * T
+    gravity_anomalies_surface = ((gravity_constant/radius) * delta_g_surface) * 1000
+    gravity_anomalies_satellite = ((gravity_constant/radius) * delta_g_satellite) * 1000
+    
+    # convert disturbing potential to geoid heights
+    N = T_geoid_anomalies / (gravity_constant/radius**2)
+
+    plt.pcolor(N, cmap='RdBu_r')
+    plt.colorbar()
+    plt.show()
+
+    fu.save_global_grid(os.path.join("data","geoid_height.nc"), N)
+    fu.save_global_grid(os.path.join("data","grav_anom_surface.nc"), gravity_anomalies_surface)
+    fu.save_global_grid(os.path.join("data","grav_anom_satellite.nc"), gravity_anomalies_satellite)
     '''
