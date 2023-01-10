@@ -1,0 +1,16 @@
+modelname              degree 1 coefficients
+product_type           potential
+created with matlab function deg1jpl2gfc.m by
+Laura Jensen
+earth_gravity_constant 3.9860044150e+14
+radius                 6.3781363000e+06
+max_degree             1
+norm                   fully_normalized
+tide_system            zero_tide
+errors                 formal
+
+key   L   M       C                   S                   sigma C             sigma S
+end_of_head ================================================================================
+gfc    0   0  0.000000000000e+00  0.000000000000e+00  0.000000000000e+00  0.000000000000e+00
+gfc    1   0 -2.478696505470e-10  0.000000000000e+00  3.621000000000e-11  3.621000000000e-11
+gfc    1   1 -1.507002781440e-10  1.211731720940e-10  3.621000000000e-11  3.621000000000e-11
