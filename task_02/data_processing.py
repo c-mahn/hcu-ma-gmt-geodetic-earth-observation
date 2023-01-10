@@ -188,7 +188,7 @@ if __name__ == '__main__':
     
     
     for itsg_grace in itsg_grace_datasets:
-        dataset = itsg_grace["data"]
+        itsg_grace_dataset = itsg_grace["data"]
         date = itsg_grace["date"]
         deg1_dataset = []
         for dataset in deg1_datasets:
@@ -196,6 +196,7 @@ if __name__ == '__main__':
             if(dataset["date"] == date):
                 deg1_dataset = dataset["data"]
                 break
+        print(f'itsg_grace: {itsg_grace_dataset}, deg1: {deg1_dataset}')
 
 
 
