@@ -149,10 +149,20 @@ if __name__ == '__main__':
             region[line_index][entry_index] = float(entry)
     print(f'[Info] Region polygon imported')
 
-    # Getting the Coordinates from the polygon
+
+    # Getting the region grid from the polygon
     region_grid = fu.getGridfromPolygon(np.array(region), grid_spacing)
     print(region_grid)
-    
+
+    # Importing polygon defining the bounding box
+    with open(os.path.join("data", "region_bounding_box.txt"), 'r') as file:
+        bounding_box = file.readlines()
+    for line_index, line in enumerate(bounding_box):
+        bounding_box[line_index] = line.split(",")
+        for entry_index, entry in enumerate(bounding_box[line_index]):
+            bounding_box[line_index][entry_index] = float(entry)
+    print(f'[Info] Region bounding box imported')
+
     ''' 
     
 def calculate_spherical_Harmonics(norm_C, norm_S, longitudes, colatitudes):
