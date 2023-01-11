@@ -51,7 +51,7 @@ def import_gfc(filename):
         filename (str): This specifies the name of the file, that will be imported.
         ignore_until (str, optional): This is the key until everthing in the header will be ignored. Defaults to "end_of_head".
     """
-    print(f'[Info] Importing file "{filename}" as gfc-file')
+    # print(f'[Info] Importing file "{filename}" as gfc-file')
     ignore_until="end_of_head"
     ignore = True
     data = []
@@ -83,7 +83,7 @@ def import_gfc_from_folder(path):
     Args:
         path (str): This is the path to the folder, that contains the gfc-files.
     """
-    print(f'[Info] Importing all gfc-files from folder "{path}"')
+    # print(f'[Info] Importing all gfc-files from folder "{path}"')
     gfc_datasets = []
     for filename in os.listdir(path):
         if filename.endswith(".gfc"):
@@ -125,7 +125,7 @@ def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
         value_index (int/str): This is the index of the value, that will be used to assemble the matrix.
         coord_indices (list, optional): This . Defaults to ["L", "M"].
     """
-    print(f'[Info] Assemble matrix {coord_indices[0]} x {coord_indices[1]}', end="\r")
+    # print(f'[Info] Assemble matrix {coord_indices[0]} x {coord_indices[1]}', end="\r")
     # Get the dimensions of the matrix
     dimension_x = 0
     dimension_y = 0
@@ -134,7 +134,7 @@ def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
             dimension_x = line[coord_indices[0]]
         if line[coord_indices[1]] > dimension_y:
             dimension_y = line[coord_indices[1]]
-    print(f'[Info] Assemble matrix {dimension_x+1}x{dimension_y+1} ({coord_indices[0]} x {coord_indices[1]})')
+    # print(f'[Info] Assemble matrix {dimension_x+1}x{dimension_y+1} ({coord_indices[0]} x {coord_indices[1]})')
     matrix = np.zeros((dimension_x+1,dimension_y+1))
     matrix = matrix.tolist()
 
@@ -148,14 +148,14 @@ def matrix_math(matrix1, matrix2, operator="+"):
     """
     This function is used to do a math operation on two different-sized matrices. The difference will be padded.
     """
-    print(f'[Info] Combining two matrices', end="\r")
+    # print(f'[Info] Combining two matrices', end="\r")
     shape_1 = [len(matrix1), len(matrix1[0])]
     shape_2 = [len(matrix2), len(matrix2[0])]
     shape = [max(shape_1[0], shape_2[0]), max(shape_1[1], shape_2[1])]
     matrix = np.zeros((shape[0], shape[1]))
     matrix = matrix.tolist()
     shape = [len(matrix), len(matrix[0])]
-    print(f'[Info] Combining two matrices with shapes {shape_1[0]}x{shape_1[1]} {operator} {shape_2[0]}x{shape_2[1]} = {shape[0]}x{shape[1]}')
+    # print(f'[Info] Combining two matrices with shapes {shape_1[0]}x{shape_1[1]} {operator} {shape_2[0]}x{shape_2[1]} = {shape[0]}x{shape[1]}')
 
     # Add the values of the first matrix
     for i in range(shape_1[0]):
@@ -185,6 +185,7 @@ if __name__ == '__main__':
     # - - - - - - - -
 
     for index, dataset in enumerate(main.datasets):
+        print(f'[Info] Importing dataset {index+1}/{len(main.datasets)}: {dataset["name"]}')
         if(dataset["type"] == "gfc"):
             if(dataset["is_folder"]):
                 data = import_gfc_from_folder(os.path.join(main.folder_data, dataset["name"]))
@@ -201,6 +202,8 @@ if __name__ == '__main__':
             print(f'[Error] The dataset {dataset["name"]} has an unknown type')
             continue
         main.datasets[index]["data"] = data
+    print(f'[Info] Importing datasets finished')
+    print(f'[Info] Region bounding-box: {main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]}')
 
     # Get GRACE data
     itsg_grace_datasets = main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]
