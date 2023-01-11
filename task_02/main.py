@@ -27,7 +27,7 @@ import platform
 # -----------------------------------------------------------------------------
 
 # These settings affect how the executed scripts below will compute the data.
-# Changing these values may increase execution-time significantly or allowes to
+# Changing these values may increase execution-time significantly or allows to
 # change the computed input or output.
 folder_data = "data"
 

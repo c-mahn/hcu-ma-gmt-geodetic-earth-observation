@@ -185,7 +185,7 @@ if __name__ == '__main__':
     # - - - - - - - -
 
     for index, dataset in enumerate(main.datasets):
-        print(f'[Info] Importing dataset {index+1}/{len(main.datasets)}: {dataset["name"]}')
+        print(f'[Info][{index+1}/{len(main.datasets)}] Importing dataset: {dataset["name"]}')
         if(dataset["type"] == "gfc"):
             if(dataset["is_folder"]):
                 data = import_gfc_from_folder(os.path.join(main.folder_data, dataset["name"]))
