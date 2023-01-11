@@ -11,6 +11,7 @@
 # Import of Libraries
 # -----------------------------------------------------------------------------
 
+import main
 # import string as st
 # import random as r
 # import re
@@ -54,7 +55,7 @@ def import_gfc(filename):
     ignore_until="end_of_head"
     ignore = True
     data = []
-    for line in open(os.path.join("data", filename)):  # Open file and read line by line
+    for line in open(filename):  # Open file and read line by line
         if(ignore):
             # Ignore lines until the line with the specified string is reached
             line = line.split(" ")[0]
@@ -82,15 +83,37 @@ def import_gfc_from_folder(path):
     Args:
         path (str): This is the path to the folder, that contains the gfc-files.
     """
-    print(f'[Info] Importing all gfc-files from folder "./data/{path}"')
+    print(f'[Info] Importing all gfc-files from folder "{path}"')
     gfc_datasets = []
-    for filename in os.listdir(os.path.join("data", path)):
+    for filename in os.listdir(path):
         if filename.endswith(".gfc"):
             data = import_gfc(os.path.join(path, filename))
             filename = filename.split(".")[0]
             date = filename.split("_")[-1]
             gfc_datasets.append({"date": date, "data": data})
     return(gfc_datasets)
+
+
+def import_csv(filename, delimiter=";"):
+    """
+    This function imports a csv-file. If possible it will also make numbers into floats
+
+    Args:
+        filename (str): This is the filename, where to import die csv from.
+        delimiter (str): This is the delimiter seperating the columns
+    """
+    with open(filename, "r") as file:
+        content = file.readlines()
+    data = []
+    for line in content:
+        line = line.split(delimiter)
+        for index, entry in enumerate(line):
+            try:
+                line[index] = float(entry)
+            except:
+                line[index] = entry.strip()
+        data.append(line)
+    return(data)
 
 
 def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
@@ -102,7 +125,7 @@ def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
         value_index (int/str): This is the index of the value, that will be used to assemble the matrix.
         coord_indices (list, optional): This . Defaults to ["L", "M"].
     """
-    print(f'[Info] Assembling the matrix with dimensions {coord_indices[0]} x {coord_indices[1]}', end="\r")
+    print(f'[Info] Assemble matrix {coord_indices[0]} x {coord_indices[1]}', end="\r")
     # Get the dimensions of the matrix
     dimension_x = 0
     dimension_y = 0
@@ -111,7 +134,7 @@ def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
             dimension_x = line[coord_indices[0]]
         if line[coord_indices[1]] > dimension_y:
             dimension_y = line[coord_indices[1]]
-    print(f'[Info] Assembling the matrix with dimensions {dimension_x+1}x{dimension_y+1} ({coord_indices[0]} x {coord_indices[1]})')
+    print(f'[Info] Assemble matrix {dimension_x+1}x{dimension_y+1} ({coord_indices[0]} x {coord_indices[1]})')
     matrix = np.zeros((dimension_x+1,dimension_y+1))
     matrix = matrix.tolist()
 
@@ -125,14 +148,14 @@ def matrix_math(matrix1, matrix2, operator="+"):
     """
     This function is used to do a math operation on two different-sized matrices. The difference will be padded.
     """
-    print(f'[Info] Substracting two matrices', end="\r")
+    print(f'[Info] Combining two matrices', end="\r")
     shape_1 = [len(matrix1), len(matrix1[0])]
     shape_2 = [len(matrix2), len(matrix2[0])]
     shape = [max(shape_1[0], shape_2[0]), max(shape_1[1], shape_2[1])]
     matrix = np.zeros((shape[0], shape[1]))
     matrix = matrix.tolist()
     shape = [len(matrix), len(matrix[0])]
-    print(f'[Info] Substracting two matrices from {shape_1[0]}x{shape_1[1]} and {shape_2[0]}x{shape_2[1]} to a matrix with dimensions {shape[0]}x{shape[1]}')
+    print(f'[Info] Combining two matrices with shapes {shape_1[0]}x{shape_1[1]} {operator} {shape_2[0]}x{shape_2[1]} = {shape[0]}x{shape[1]}')
 
     # Add the values of the first matrix
     for i in range(shape_1[0]):
@@ -160,43 +183,36 @@ if __name__ == '__main__':
     
     # Importing data
     # - - - - - - - -
+
+    for index, dataset in enumerate(main.datasets):
+        if(dataset["type"] == "gfc"):
+            if(dataset["is_folder"]):
+                data = import_gfc_from_folder(os.path.join(main.folder_data, dataset["name"]))
+            else:
+                data = import_gfc(os.path.join(main.folder_data, dataset["name"]))
+        elif(dataset["type"] == "csv"):
+            data = import_csv(os.path.join(main.folder_data, dataset["name"]), delimiter=dataset["delimiter"])
+        elif(dataset["type"] == "single_column"):
+            content = import_csv(os.path.join(main.folder_data, dataset["name"]), delimiter="\n")
+            data = []
+            for entry in content:
+                data.append(entry[0])
+        else:
+            print(f'[Error] The dataset {dataset["name"]} has an unknown type')
+            continue
+        main.datasets[index]["data"] = data
+
+    # Get GRACE data
+    itsg_grace_datasets = main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]
     
-    # Importing polygon defining the region
-    with open(os.path.join("data", "region_polygon.txt"), 'r') as file:
-        region = file.readlines()
-    for line_index, line in enumerate(region):
-        region[line_index] = line.split(",")
-        for entry_index, entry in enumerate(region[line_index]):
-            region[line_index][entry_index] = float(entry)
-    print(f'[Info] Region polygon imported')
-
-    # Getting the region grid from the polygon
-    region_grid = fu.getGridfromPolygon(np.array(region), grid_spacing)
-
-    # Importing polygon defining the bounding box
-    with open(os.path.join("data", "region_bounding_box.txt"), 'r') as file:
-        bounding_box = file.readlines()
-    for line_index, line in enumerate(bounding_box):
-        bounding_box[line_index] = line.split(",")
-        for entry_index, entry in enumerate(bounding_box[line_index]):
-            bounding_box[line_index][entry_index] = float(entry)
-    print(f'[Info] Region bounding box imported')
-
-    # Import GRACE data
-    itsg_grace_datasets = import_gfc_from_folder("ITSG-Grace")
-    
-    # Import deg1 data
-    deg1_datasets = import_gfc_from_folder("deg1")
+    # Get deg1 data
+    deg1_datasets = main.select_dataset(main.datasets, "name", "deg1")["data"]
    
-    # Importing the data from Grace's gravity field model
-    itsg_grace_2018 = import_gfc("ITSG-Grace2018s.gfc")
+    # Get the data from Grace's gravity field model
+    itsg_grace_2018 = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")["data"]
     
-    # Importing the load Love Numbers Gegout97
-    with open(os.path.join("data", "loadLoveNumbers_Gegout97.txt"), 'r') as file:
-        load_love_numbers = file.readlines()
-    for entry_index, entry in enumerate(load_love_numbers):
-        load_love_numbers[entry_index] = float(entry)
-        print(f'[Info] LoadLoveNumbers imported')
+    # Get the load Love Numbers Gegout97
+    load_love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
 
     # Assemble matrices
     itsg_grace_2018_matrix_c = assemble_matrix(itsg_grace_2018, value_index="C")

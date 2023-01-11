@@ -29,8 +29,16 @@ import platform
 # These settings affect how the executed scripts below will compute the data.
 # Changing these values may increase execution-time significantly or allowes to
 # change the computed input or output.
+folder_data = "data"
 
 # These are the datasets that will be used for the computation.
+datasets = [{"name":"ITSG-Grace", "type": "gfc", "is_folder": True},
+            {"name":"deg1", "type": "gfc", "is_folder": True},
+            {"name": "ITSG-Grace2018s.gfc", "type": "gfc", "is_folder": False},
+            {"name": "loadLoveNumbers_Gegout97.txt", "type": "single_column", "is_folder": False},
+            {"name": "region_bounding_box.txt", "type": "csv", "delimiter": ",", "is_folder": False},
+            {"name": "region_polygon.txt", "type": "csv", "delimiter": ",", "is_folder": False}]
+
 
 # Functions
 # -----------------------------------------------------------------------------
@@ -57,6 +65,24 @@ def terminate():
     """
     print("[INFO] The program has been terminated.")
     exit()
+
+
+def select_dataset(datasets, key, value):
+    """
+    This function selects a dataset from the list of datasets.
+
+    Args:
+        datasets (list): list of datasets
+        key (str): key of the dataset
+        value (str): value of the dataset
+
+    Returns:
+        dict: dataset
+    """
+    for dataset in datasets:
+        if(dataset[key] == value):
+            return dataset
+    return None
 
 
 # Classes
