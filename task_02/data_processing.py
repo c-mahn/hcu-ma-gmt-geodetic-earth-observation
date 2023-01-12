@@ -181,8 +181,8 @@ def matrix_math(matrix1, matrix2, operator="+"):
 
 if __name__ == '__main__':
     
-    # Importing data
-    # - - - - - - - -
+    # Importing all datasets
+    # - - - - - - - - - - - -
 
     for index, dataset in enumerate(main.datasets):
         print(f'[Info][{index+1}/{len(main.datasets)}] Importing dataset: {dataset["name"]}')
@@ -203,24 +203,75 @@ if __name__ == '__main__':
             continue
         main.datasets[index]["data"] = data
     print(f'[Info] Importing datasets finished')
-    print(f'[Info] Region bounding-box: {main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]}')
 
-    # Get GRACE data
-    itsg_grace_datasets = main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]
+
+    # Create dataset of the augmented gravity field model of each month
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    output_datasets = []
     
-    # Get deg1 data
-    deg1_datasets = main.select_dataset(main.datasets, "name", "deg1")["data"]
-   
-    # Get the data from Grace's gravity field model
+    # Load the static grace observation model and assemble it into matrices
     itsg_grace_2018 = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")["data"]
-    
-    # Get the load Love Numbers Gegout97
-    load_love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
-
-    # Assemble matrices
     itsg_grace_2018_matrix_c = assemble_matrix(itsg_grace_2018, value_index="C")
     itsg_grace_2018_matrix_s = assemble_matrix(itsg_grace_2018, value_index="S")
-    load_love_numbers_vector = np.array(load_love_numbers)
+    itsg_grace_2018_matrix_sigma_c = assemble_matrix(itsg_grace_2018, value_index="sigma_C")
+    itsg_grace_2018_matrix_sigma_s = assemble_matrix(itsg_grace_2018, value_index="sigma_S")
+    del itsg_grace_2018
+
+    length = len(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"])
+    for index, itsg_grace in enumerate(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]):
+        print(f'[Info][{index+1}/{length}] combining models ({itsg_grace["date"]})', end="\r")
+        itsg_grace_dataset = itsg_grace["data"]
+        
+        # Assembling the matrices for the monthly grace observation model
+        itsg_grace_matrix_c = assemble_matrix(itsg_grace_dataset, value_index="C")
+        itsg_grace_matrix_s = assemble_matrix(itsg_grace_dataset, value_index="S")
+        itsg_grace_matrix_sigma_c = assemble_matrix(itsg_grace_dataset, value_index="sigma_C")
+        itsg_grace_matrix_sigma_s = assemble_matrix(itsg_grace_dataset, value_index="sigma_S")
+        
+        # Removing the static part of the grace observations
+        current_c = matrix_math(itsg_grace_matrix_c, itsg_grace_2018_matrix_c, operator="-")
+        current_s = matrix_math(itsg_grace_matrix_s, itsg_grace_2018_matrix_s, operator="-")
+        current_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, itsg_grace_2018_matrix_c, operator="-")
+        current_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, itsg_grace_2018_matrix_s, operator="-")
+
+        # Assembling the corresponding matrices for the degree 1 grace coefficients
+        deg1_dataset = []
+        for dataset in main.select_dataset(main.datasets, "name", "deg1")["data"]:
+            if(dataset["date"] == itsg_grace["date"]):  # Selecting the correct dataset
+                deg1_dataset = dataset["data"]
+                break
+        deg1_matrix_c = assemble_matrix(deg1_dataset, value_index="C")
+        deg1_matrix_s = assemble_matrix(deg1_dataset, value_index="S")
+        deg1_matrix_sigma_c = assemble_matrix(deg1_dataset, value_index="sigma_C")
+        deg1_matrix_sigma_s = assemble_matrix(deg1_dataset, value_index="sigma_S")
+        
+        # Augmenting the grace observations with the monthly grace coefficients
+        current_c = matrix_math(current_c, deg1_matrix_c, operator="+")
+        current_s = matrix_math(current_s, deg1_matrix_s, operator="+")
+        current_sigma_c = matrix_math(current_sigma_c, deg1_matrix_sigma_c, operator="+")
+        current_sigma_s = matrix_math(current_sigma_s, deg1_matrix_sigma_s, operator="+")
+        
+        # Collecting the augmented grace observations
+        output_datasets.append({"date": itsg_grace["date"], "data": {"C": current_c, "S": current_s, "sigma_C": current_sigma_c, "sigma_S": current_sigma_s}})
+
+    # Append the augmented grace dataset
+    print(f'[Info][Done] Creating dataset of the augmented gravity field models')
+    main.datasets.append({"name": "augmented_grace", "data": output_datasets})
+
+    # Remove the temporary variables
+    del output_datasets
+    del itsg_grace_2018_matrix_c, itsg_grace_2018_matrix_s, itsg_grace_2018_matrix_sigma_c, itsg_grace_2018_matrix_sigma_s
+    del itsg_grace_matrix_c, itsg_grace_matrix_s, itsg_grace_matrix_sigma_c, itsg_grace_matrix_sigma_s
+    del deg1_matrix_c, deg1_matrix_s, deg1_matrix_sigma_c, deg1_matrix_sigma_s
+    del current_c, current_s, current_sigma_c, current_sigma_s
+
+
+    # Calculate the equivalent water height
+    # - - - - - - - - - - - - - - - - - - -
+
+    # Load the love numbers
+    love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
 
     # Defining a vector with all longitudes from -180° to 180° (1-degree spacing)
     longitudes_vector = np.array(np.linspace(-180, 180, 361))
@@ -233,37 +284,13 @@ if __name__ == '__main__':
 
     # Converting the co-latitudes vector into radians
     colatitudes_vector_rad = colatitudes_vector / rho_grad
-
-    ewh = []
-
-    for itsg_grace in itsg_grace_datasets:
-        itsg_grace_dataset = itsg_grace["data"]
-        date = itsg_grace["date"]
-        deg1_dataset = []
-        for dataset in deg1_datasets:
-            # Get the corresponding dataset
-            if(dataset["date"] == date):
-                deg1_dataset = dataset["data"]
-                break
+    
+    for dataset in main.select_dataset(main.datasets, "name", "augmented_grace")["data"]:
+        # Get the corresponding dataset
+        dataset_date = dataset["date"]
+        data = dataset["data"]
         
-        # Assembling the matrices
-        itsg_grace_matrix_c = assemble_matrix(itsg_grace_dataset, value_index="C")
-        deg1_matrix_c = assemble_matrix(deg1_dataset, value_index="C")
-        itsg_grace_matrix_s = assemble_matrix(itsg_grace_dataset, value_index="S")
-        deg1_matrix_s = assemble_matrix(deg1_dataset, value_index="S")
-        itsg_grace_matrix_sigma_c = assemble_matrix(itsg_grace_dataset, value_index="sigma_C")
-        deg1_matrix_sigma_c = assemble_matrix(deg1_dataset, value_index="sigma_C")
-        itsg_grace_matrix_sigma_s = assemble_matrix(itsg_grace_dataset, value_index="sigma_S")
-        deg1_matrix_sigma_s = assemble_matrix(deg1_dataset, value_index="sigma_S")
         
-        # Removing the static part of the grace observations
-        current_c = matrix_math(itsg_grace_matrix_c, deg1_matrix_c, operator="-")
-        current_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_s, operator="-")
-        current_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, deg1_matrix_sigma_c, operator="-")
-        current_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, deg1_matrix_sigma_s, operator="-")
-
-        current_c = matrix_math(current_c, itsg_grace_2018_matrix_c, operator="-")
-        current_s = matrix_math(current_s, itsg_grace_2018_matrix_s, operator="-")
 
 
         # ewh += fu.calc_EWH_fast(long, lat, n, m, current_c, current_s, mass, radius, rho_water, load_love_numbers_vector)
