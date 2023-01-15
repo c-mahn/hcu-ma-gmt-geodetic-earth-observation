@@ -266,12 +266,23 @@ if __name__ == '__main__':
     del deg1_matrix_c, deg1_matrix_s, deg1_matrix_sigma_c, deg1_matrix_sigma_s
     del current_c, current_s, current_sigma_c, current_sigma_s
 
-
     # Calculate the equivalent water height
     # - - - - - - - - - - - - - - - - - - -
 
-    # Load the love numbers
+    # Loading the love numbers
     love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
+
+
+
+
+    # Converting the love numbers into numpy-vectors
+    love_numbers_vector = np.zeros(len(love_numbers))
+    for i in range(len(love_numbers)):
+        love_numbers_vector[i] = love_numbers[i]
+
+
+
+
 
     # Defining a vector with all longitudes from -180° to 180° (1-degree spacing)
     longitudes_vector = np.array(np.linspace(-180, 180, 361))
@@ -289,11 +300,43 @@ if __name__ == '__main__':
         # Get the corresponding dataset
         dataset_date = dataset["date"]
         data = dataset["data"]
-        
-        
 
 
-        # ewh += fu.calc_EWH_fast(long, lat, n, m, current_c, current_s, mass, radius, rho_water, load_love_numbers_vector)
+
+
+    # Converting the spherical harmonic coefficients into numpy-vectors
+    c_vector = np.zeros(len(data["C"]))
+    for i in range(len(data["C"])):
+        c_vector[i] = data["C"][index][i]           # index hier richtig?
+
+    s_vector = np.zeros(len(data["S"]))
+    for i in range(len(data["S"])):
+        s_vector[i] = data["S"][index][i]           # index hier richtig?
+
+
+    # Calculating the unfiltered equivalent water heights (ewh)
+
+    print(f'[Info][Done] Calculating the unfiltered ewh')
+    ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, c_vector, s_vector, mass, radius, rho_water, love_numbers)
+
+
+    # Filtering of the spherical harmonic coefficients
+
+
+
+    # Computation of a time series of region averages
+
+
+
+    # Interpolation of missing GRACE months
+
+
+
+    # Estimation of the linear mass trend
+
+
+
+
 
 
     ''' 
