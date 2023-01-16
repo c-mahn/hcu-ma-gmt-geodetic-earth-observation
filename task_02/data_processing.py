@@ -273,7 +273,7 @@ if __name__ == '__main__':
     love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
     
     # Converting the love numbers into numpy-vectors
-    love_numbers_vector = np.array(love_numbers)
+    love_numbers = np.array(love_numbers)
 
     # Defining a vector with all longitudes from -180° to 180° (1-degree spacing)
     longitudes_vector = np.array(np.linspace(-180, 180, 361))
