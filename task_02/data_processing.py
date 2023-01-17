@@ -19,7 +19,7 @@ import main
 import matplotlib.pyplot as plt
 # from scipy import interpolate
 import numpy as np
-import math as m
+# import math as m
 # import sys
 import os
 # from scipy.fft import fft, fftfreq
@@ -185,12 +185,14 @@ def gaussian_filtering(spherical_harmonics, filter_radius=200000):
         spherical_harmonics ([[float]]): A list of lists of floats, that contains the spherical harmonics.
         filter_radius (int, optional): Filter radius in meters. Defaults to 200000.
     """
-    b = (m.ln(2)) / (1-m.cos(filter_radius/radius))
+    print(spherical_harmonics)
+    b = (np.log(2)) / (1-np.cos(filter_radius/radius))
     w_0 = 1
-    w_1 = (1+m.e**(-2*b)) / (1-m.e**(-2*b)) - (1/b)
+    w_1 = (1+np.e**(-2*b)) / (1-np.e**(-2*b)) - (1/b)
     w = [w_0, w_1]
-    for degree, entry in enumerate(spherical_harmonics[2:-1]):
-        w.append((-(2*degree-1) / b) * w[-1] + w[-2])
+    for degree in range(degree_n):
+        if degree > 1:
+            w.append((-(2*degree-1) / b) * w[-1] + w[-2])
     for degree, current_orders in enumerate(spherical_harmonics):
         for order, entry in enumerate(current_orders):
             spherical_harmonics[degree][order] = entry * w[degree]
@@ -309,25 +311,32 @@ if __name__ == '__main__':
     colatitudes_vector_rad = colatitudes_vector / rho_grad
     
     for dataset in main.select_dataset(main.datasets, "name", "augmented_grace")["data"]:
+        
         # Get the corresponding dataset
         dataset_date = dataset["date"]
         data = dataset["data"]
 
-    # Converting the spherical harmonic coefficients into numpy-matrices
-    cnm_matrix = np.array(data["C"])
-    snm_matrix= np.array(data["S"])
+        # Converting the spherical harmonic coefficients into numpy-matrices
+        cnm_matrix = np.array(data["C"])
+        snm_matrix= np.array(data["S"])
 
-    # Calculating the unfiltered equivalent water heights (ewh)
+        # Calculating the unfiltered equivalent water heights (ewh)
 
-    ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers)
-    print(f'[Info][Done] Calculating the unfiltered ewh')
+        ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers)
+        print(f'[Info][Done] Calculating the unfiltered ewh')
     
-    # Filtering of the spherical harmonic coefficients
+        # Filtering of the spherical harmonic coefficients
 
-    wn_factor = 0
+        c_filtered = []
+        for i in data["C"]:
+            c_filtered.append(gaussian_filtering(i))
 
+        s_filtered = []
+        for i in data["S"]:
+            s_filtered.append(gaussian_filtering(i))
+        print(f'[Info][Done] Filtering the spherical harmonic coefficients')
 
-    # Computation of a time series of region averages
+        # Computation of a time series of region averages
 
 
 
