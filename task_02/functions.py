@@ -12,7 +12,7 @@ def legendreFunctions(theta, maxDegree):
 	global legendreFactor2
 	
 	if (legendreFactor1.shape[0] < maxDegree+1):
-		print("Calculating Legendre Factors")
+		print("[Info] Calculating Legendre Factors")
 		legendreFactor1 = np.zeros([maxDegree+1,maxDegree+1],order='F')
 		legendreFactor2 = np.zeros([maxDegree+1,maxDegree+1],order='F')
 		legendreFactor1[1,1] = math.sqrt(3) 
@@ -175,7 +175,7 @@ def calc_EWH_fast(lamda,theta,cnm,snm,M,R,rho,k):
     
     # order is needed in loop
     order = np.arange(0,maxDegree+1,1)
-    theta_alt = 0
+    theta_alt = None
     
     # loop over all positions
     for i in range(len(theta)):

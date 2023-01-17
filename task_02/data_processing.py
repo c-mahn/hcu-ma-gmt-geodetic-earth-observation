@@ -256,8 +256,8 @@ if __name__ == '__main__':
         output_datasets.append({"date": itsg_grace["date"], "data": {"C": current_c, "S": current_s, "sigma_C": current_sigma_c, "sigma_S": current_sigma_s}})
 
     # Append the augmented grace dataset
-    print(f'[Info][Done] Creating dataset of the augmented gravity field models')
     main.datasets.append({"name": "augmented_grace", "data": output_datasets})
+    print(f'[Info][Done] Creating dataset of the augmented gravity field models')
 
     # Remove the temporary variables
     del output_datasets
@@ -273,7 +273,7 @@ if __name__ == '__main__':
     love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
     
     # Converting the love numbers into numpy-vectors
-    love_numbers = np.array(love_numbers)
+    love_numbers = np.array(love_numbers[0:201])
 
     # Defining a vector with all longitudes from -180° to 180° (1-degree spacing)
     longitudes_vector = np.array(np.linspace(-180, 180, 361))
@@ -292,24 +292,18 @@ if __name__ == '__main__':
         dataset_date = dataset["date"]
         data = dataset["data"]
 
-    # Converting the spherical harmonic coefficients into numpy-vectors
-    c_vector = np.zeros(len(data["C"]))
-    for i in range(len(data["C"])):
-        c_vector[i] = data["C"][index][i]           # index hier richtig?
-
-    s_vector = np.zeros(len(data["S"]))
-    for i in range(len(data["S"])):
-        s_vector[i] = data["S"][index][i]           # index hier richtig?
-
+    # Converting the spherical harmonic coefficients into numpy-matrices
+    cnm_matrix = np.array(data["C"])
+    snm_matrix= np.array(data["S"])
 
     # Calculating the unfiltered equivalent water heights (ewh)
 
+    ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers)
     print(f'[Info][Done] Calculating the unfiltered ewh')
-    ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, c_vector, s_vector, mass, radius, rho_water, love_numbers)
-
-
+    
     # Filtering of the spherical harmonic coefficients
 
+    wn_factor = 0
 
 
     # Computation of a time series of region averages
