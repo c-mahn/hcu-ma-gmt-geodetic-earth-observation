@@ -19,7 +19,7 @@ import main
 import matplotlib.pyplot as plt
 # from scipy import interpolate
 import numpy as np
-# import math as m
+import math as m
 # import sys
 import os
 # from scipy.fft import fft, fftfreq
@@ -174,7 +174,28 @@ def matrix_math(matrix1, matrix2, operator="+"):
             elif(operator == "/"):
                 matrix[i][j] /= matrix2[i][j]
     return(matrix)
-    
+
+
+def gaussian_filtering(spherical_harmonics, filter_radius=200000):
+    """
+    This function is used to apply a gaussian filter to the spherical harmonics.
+    The filtering is done in the frequency domain.
+
+    Args:
+        spherical_harmonics ([[float]]): A list of lists of floats, that contains the spherical harmonics.
+        filter_radius (int, optional): Filter radius in meters. Defaults to 200000.
+    """
+    b = (m.ln(2)) / (1-m.cos(filter_radius/radius))
+    w_0 = 1
+    w_1 = (1+m.e**(-2*b)) / (1-m.e**(-2*b)) - (1/b)
+    w = [w_0, w_1]
+    for degree, entry in enumerate(spherical_harmonics[2:-1]):
+        w.append((-(2*degree-1) / b) * w[-1] + w[-2])
+    for degree, current_orders in enumerate(spherical_harmonics):
+        for order, entry in enumerate(current_orders):
+            spherical_harmonics[degree][order] = entry * w[degree]
+    return(spherical_harmonics)
+
 
 # Beginning of the Main Programm
 # -----------------------------------------------------------------------------
