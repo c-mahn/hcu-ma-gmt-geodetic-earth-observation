@@ -12,7 +12,7 @@ def legendreFunctions(theta, maxDegree):
 	global legendreFactor2
 	
 	if (legendreFactor1.shape[0] < maxDegree+1):
-		print("[Info] Calculating Legendre Factors")
+		# print("[Info] Calculating Legendre Factors")
 		legendreFactor1 = np.zeros([maxDegree+1,maxDegree+1],order='F')
 		legendreFactor2 = np.zeros([maxDegree+1,maxDegree+1],order='F')
 		legendreFactor1[1,1] = math.sqrt(3) 

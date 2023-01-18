@@ -176,27 +176,69 @@ def matrix_math(matrix1, matrix2, operator="+"):
     return(matrix)
 
 
-def gaussian_filtering(spherical_harmonics, filter_radius=200000):
+def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
     """
-    This function is used to apply a gaussian filter to the spherical harmonics.
-    The filtering is done in the frequency domain.
+    This function is used to calculate the EWH.
 
     Args:
-        spherical_harmonics ([[float]]): A list of lists of floats, that contains the spherical harmonics.
+        lamda (float): vector containing longitudes (in radian) for each position where the EWH shall be evaluated.
+        theta (float): vector containing co-latitudes (in radian) for each position where the EWH shall be evaluated.
+        cnm (list): triangular matrix containing the spherical harmonic coefficients from which the EWH shall be computed
+        snm (list): triangular matrix containing the spherical harmonic coefficients from which the EWH shall be computed
+        M (int): mass of the earth in kg
+        R (float): radius of the earth in m
+        rho (float): density of water (in kg/m3)
+        k (float): vector of Load Love numbers until same degree as given cnm and snm.
+    """
+    max_degree = len(cnm)-1
+    ewh = []
+    for i in range(len(lamda)):
+        ewh.append([])
+        for j in range(len(theta)):
+            ewh[i].append(0)
+    for index_colatitude, colatitude in enumerate(theta):
+        print(f'[{int(100*index_colatitude/len(theta)):03d}%]', end='\r')
+        P = fu.legendreFunctions(colatitude, max_degree)  # Calculate the legendre functions
+        for index_longitude, longitude in enumerate(lamda):
+            sum_outer = 0
+            for n in range(max_degree):
+                sum_inner = 0
+                for m in range(n):
+                    sum_inner += cnm[n][m]*(P[n][m]*np.cos(colatitude)*np.cos(m*longitude)) + snm[n][m]*(P[n][m]*np.cos(colatitude)*np.sin(m*longitude))
+                sum_outer += (2*n+1)/(1+k[n]) * sum_inner
+            ewh[index_longitude][index_colatitude] = (M/rho*4*np.pi*R**2) * float(sum_outer)
+    return(np.array(ewh))
+
+
+def gaussian_filtering_factors(degree, filter_radius=200000):
+    """
+    This function is used to calculate the gaussian filtering factors.
+
+    Args:
+        degree (int): Maximum degree for which the factors are calculated.
         filter_radius (int, optional): Filter radius in meters. Defaults to 200000.
     """
-    print(spherical_harmonics)
     b = (np.log(2)) / (1-np.cos(filter_radius/radius))
     w_0 = 1
     w_1 = (1+np.e**(-2*b)) / (1-np.e**(-2*b)) - (1/b)
     w = [w_0, w_1]
-    for degree in range(degree_n):
-        if degree > 1:
-            w.append((-(2*degree-1) / b) * w[-1] + w[-2])
-    for degree, current_orders in enumerate(spherical_harmonics):
-        for order, entry in enumerate(current_orders):
-            spherical_harmonics[degree][order] = entry * w[degree]
-    return(spherical_harmonics)
+    while(len(w) < degree):
+        w.append((-(2*len(w)-1) / b) * w[-1] + w[-2])
+    return(w)
+
+
+def latlon_from_polygon(polygon, resolution):
+    data = fu.getGridfromPolygon(np.polygon, resolution)
+    data = data.tolist()
+    longitudes = []
+    latitudes = []
+    for i in data:
+        longitudes.append(i[0])
+        latitudes.append(i[1])
+    longitudes = set(longitudes).sort()
+    latitudes = set(latitudes).sort()
+    return(latitudes, longitudes)
+    
 
 
 # Beginning of the Main Programm
@@ -231,8 +273,9 @@ if __name__ == '__main__':
     # Create dataset of the augmented gravity field model of each month
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    output_datasets = []
-    
+    # Create new dataset for the output
+    output_datasets = {"name": "grace_augmented", "data": []}
+
     # Load the static grace observation model and assemble it into matrices
     itsg_grace_2018 = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")["data"]
     itsg_grace_2018_matrix_c = assemble_matrix(itsg_grace_2018, value_index="C")
@@ -241,24 +284,24 @@ if __name__ == '__main__':
     itsg_grace_2018_matrix_sigma_s = assemble_matrix(itsg_grace_2018, value_index="sigma_S")
     del itsg_grace_2018
 
-    length = len(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"])
+    length = len(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"])  # Just for the progress bar
     for index, itsg_grace in enumerate(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]):
-        print(f'[Info][{index+1}/{length}] combining models ({itsg_grace["date"]})', end="\r")
+        print(f'[Info][{index+1}/{length}] Creating augmented grace-dataset ({itsg_grace["date"]})', end="\r")  # Progress bar
         itsg_grace_dataset = itsg_grace["data"]
-        
-        # Assembling the matrices for the monthly grace observation model
+
+        # Assemble monthly grace observations into matrices
         itsg_grace_matrix_c = assemble_matrix(itsg_grace_dataset, value_index="C")
         itsg_grace_matrix_s = assemble_matrix(itsg_grace_dataset, value_index="S")
         itsg_grace_matrix_sigma_c = assemble_matrix(itsg_grace_dataset, value_index="sigma_C")
         itsg_grace_matrix_sigma_s = assemble_matrix(itsg_grace_dataset, value_index="sigma_S")
-        
-        # Removing the static part of the grace observations
-        current_c = matrix_math(itsg_grace_matrix_c, itsg_grace_2018_matrix_c, operator="-")
-        current_s = matrix_math(itsg_grace_matrix_s, itsg_grace_2018_matrix_s, operator="-")
-        current_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, itsg_grace_2018_matrix_c, operator="-")
-        current_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, itsg_grace_2018_matrix_s, operator="-")
 
-        # Assembling the corresponding matrices for the degree 1 grace coefficients
+        # - static grace model
+        itsg_grace_matrix_c = matrix_math(itsg_grace_matrix_c, itsg_grace_2018_matrix_c, operator="-")
+        itsg_grace_matrix_s = matrix_math(itsg_grace_matrix_s, itsg_grace_2018_matrix_s, operator="-")
+        itsg_grace_matrix_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, itsg_grace_2018_matrix_c, operator="-")
+        itsg_grace_matrix_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, itsg_grace_2018_matrix_s, operator="-")
+
+        # Assemble monthly grace coefficients into matrices
         deg1_dataset = []
         for dataset in main.select_dataset(main.datasets, "name", "deg1")["data"]:
             if(dataset["date"] == itsg_grace["date"]):  # Selecting the correct dataset
@@ -268,18 +311,21 @@ if __name__ == '__main__':
         deg1_matrix_s = assemble_matrix(deg1_dataset, value_index="S")
         deg1_matrix_sigma_c = assemble_matrix(deg1_dataset, value_index="sigma_C")
         deg1_matrix_sigma_s = assemble_matrix(deg1_dataset, value_index="sigma_S")
-        
-        # Augmenting the grace observations with the monthly grace coefficients
-        current_c = matrix_math(current_c, deg1_matrix_c, operator="+")
-        current_s = matrix_math(current_s, deg1_matrix_s, operator="+")
-        current_sigma_c = matrix_math(current_sigma_c, deg1_matrix_sigma_c, operator="+")
-        current_sigma_s = matrix_math(current_sigma_s, deg1_matrix_sigma_s, operator="+")
-        
-        # Collecting the augmented grace observations
-        output_datasets.append({"date": itsg_grace["date"], "data": {"C": current_c, "S": current_s, "sigma_C": current_sigma_c, "sigma_S": current_sigma_s}})
 
-    # Append the augmented grace dataset
-    main.datasets.append({"name": "augmented_grace", "data": output_datasets})
+        # + monthly grace coefficients
+        itsg_grace_matrix_c = matrix_math(itsg_grace_matrix_c, deg1_matrix_c, operator="+")
+        itsg_grace_matrix_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_s, operator="+")
+        itsg_grace_matrix_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, deg1_matrix_sigma_c, operator="+")
+        itsg_grace_matrix_sigma_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_sigma_s, operator="+")
+
+        # Append the monthly augmented grace dataset
+        output_datasets["data"].append({"date": itsg_grace["date"], "data": {"C": itsg_grace_matrix_c,
+                                                                             "S": itsg_grace_matrix_s,
+                                                                             "sigma_C": itsg_grace_matrix_sigma_c,
+                                                                             "sigma_S": itsg_grace_matrix_sigma_s}})
+
+    # Append all the datasets to the main datasets
+    main.datasets.append(output_datasets)
     print(f'[Info][Done] Creating dataset of the augmented gravity field models')
 
     # Remove the temporary variables
@@ -287,31 +333,26 @@ if __name__ == '__main__':
     del itsg_grace_2018_matrix_c, itsg_grace_2018_matrix_s, itsg_grace_2018_matrix_sigma_c, itsg_grace_2018_matrix_sigma_s
     del itsg_grace_matrix_c, itsg_grace_matrix_s, itsg_grace_matrix_sigma_c, itsg_grace_matrix_sigma_s
     del deg1_matrix_c, deg1_matrix_s, deg1_matrix_sigma_c, deg1_matrix_sigma_s
-    del current_c, current_s, current_sigma_c, current_sigma_s
+
 
     # Calculate the equivalent water height
-    # - - - - - - - - - - - - - - - - - - -
+    # -------------------------------------
 
     # Loading the love numbers
-    love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
+    love_numbers = np.array(main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"])
     
-    # Converting the love numbers into numpy-vectors
-    love_numbers = np.array(love_numbers[0:201])
+    # Latutude and longitude of the region of interest
+    latitudes_vector_rad, longitudes_vector_rad = latlon_from_polygon(main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"], 0.5)
+    colatitudes_vector_rad = np.pi/2 - latitudes_vector_rad
 
-    # Defining a vector with all longitudes from -180° to 180° (1-degree spacing)
-    longitudes_vector = np.array(np.linspace(-180, 180, 361))
+    # Uncomment the following section to calculate the equivalent water height for each month
+    ''' # Create new dataset for the equivalent water height of each month
+    dataset_ewh = {"name": "ewh_monthly", "data": []}
 
-    # Defining a vector with all co-latitudes from 0° to 180° (1-degree spacing)
-    colatitudes_vector = np.array(np.linspace(0, 180, 181))
+    length = len(main.select_dataset(main.datasets, "name", "grace_augmented")["data"])  # Just for the progress bar
+    for index, dataset in enumerate(main.select_dataset(main.datasets, "name", "grace_augmented")["data"]):
+        print(f'[Info][{index+1}/{length}] Calculating equivalent water height ({dataset["date"]})', end="\r")  # Progress bar
 
-    # Converting the longitudes vector into radians
-    longitudes_vector_rad = longitudes_vector / rho_grad
-
-    # Converting the co-latitudes vector into radians
-    colatitudes_vector_rad = colatitudes_vector / rho_grad
-    
-    for dataset in main.select_dataset(main.datasets, "name", "augmented_grace")["data"]:
-        
         # Get the corresponding dataset
         dataset_date = dataset["date"]
         data = dataset["data"]
@@ -322,21 +363,65 @@ if __name__ == '__main__':
 
         # Calculating the unfiltered equivalent water heights (ewh)
 
-        ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers)
-        print(f'[Info][Done] Calculating the unfiltered ewh')
+        # ewh = calc_EWH(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers[0:cnm_matrix.shape[0]])
+        ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers[0:cnm_matrix.shape[0]])
+        dataset_ewh["data"].append({"date": dataset_date, "data": ewh})
+
+    # Append the equivalent water height dataset
+    main.datasets.append(dataset_ewh)
+    print(f'[Info][Done] Creating dataset of the equivalent water height')
+
+    # Remove the temporary variables
+    del love_numbers, longitudes_vector, colatitudes_vector, cnm_matrix, snm_matrix, ewh '''
     
-        # Filtering of the spherical harmonic coefficients
+    # Calculate equivalent water height of april 2008
+    print(f'[Info] Calculating equivalent water height (2008-04)', end="\r")
+    main.datasets.append({"name": "ewh_2008-04",
+                          "data": calc_EWH(longitudes_vector_rad,
+                                  colatitudes_vector_rad,
+                                  np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]),
+                                  np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["S"]),
+                                  mass,
+                                  radius,
+                                  rho_water,
+                                  love_numbers[0:np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]).shape[0]]).tolist(),
+                          "type": "array"})
+    ewh_csv = []
+    print(main.select_dataset(main.datasets, "name", "ewh_2008-04")["data"])
+    for i, line in enumerate(main.select_dataset(main.datasets, "name", "ewh_2008-04")["data"]):
+        for j, value in enumerate(line):
+            ewh_csv.append([i, j, value])
+    np.savetxt(os.path.join(main.folder_data, "output", "2008-04_ewh.csv"), ewh_csv, delimiter=";")
+    del ewh_csv, i, j, line, value
+    print(f'[Info][Done] Creating dataset of the equivalent water height (2008-04)')
 
-        c_filtered = []
-        for i in data["C"]:
-            c_filtered.append(gaussian_filtering(i))
+    # Filtering of the spherical harmonic coefficients
+    # ------------------------------------------------
 
-        s_filtered = []
-        for i in data["S"]:
-            s_filtered.append(gaussian_filtering(i))
-        print(f'[Info][Done] Filtering the spherical harmonic coefficients')
+    # Create new dataset for the filtered spherical harmonic coefficients
+    print(f'[Info] Filtering the spherical harmonic coefficients', end="\r")
+    dataset_grace_filtered = {"name": "gaussian_filter_coefficients", "data": gaussian_filtering_factors(degree_n, filter_radius=300000)}
+    print(f'[Info][Done] Creating dataset of the filtered spherical harmonic coefficients')
 
-        # Computation of a time series of region averages
+    # Select the grace_augmented dataset for April 2008
+    grace_2008_04 = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]
+
+
+
+
+
+    # Computation of a time series of region averages
+    # -----------------------------------------------
+
+
+
+
+
+
+
+
+
+
 
 
 
