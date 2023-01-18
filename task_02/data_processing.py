@@ -38,7 +38,7 @@ degree_n            = 96
 order_m             = 20                
 rho_grad            = 180/np.pi
 rho_water           = 1000              # kg / m^3  
-grid_spacing        = 1
+grid_spacing        = 0.5
 
 # Functions
 # -----------------------------------------------------------------------------
@@ -473,7 +473,7 @@ if __name__ == '__main__':
     # Estimation of the linear mass trend
     # -----------------------------------------------
 
-    
+
 
 
 
