@@ -16,6 +16,7 @@
 
 import os
 import shutil
+import main
 
 
 # Functions
@@ -24,7 +25,7 @@ import shutil
 def plot_sherical_harmonics(file_name="test",
                             img_type="png",
                             grid_resolution="0.5",
-                            file_name_poly="../data/region_polygon.txt",
+                            file_name_poly=os.path.join(main.folder_data, "region_polygon.txt"),
                             map_projection="M-120/18c",
                             region ="-175/-110/41/62",
                             color_palette="haxby",
@@ -64,7 +65,7 @@ def plot_sherical_harmonics(file_name="test",
     os.system(f'gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"{title}" -W0.25p,80/80/80 -Df -V ')  # Plot the coastlines and the title
     os.system(f'gmt text -F+cBL+t"{subtitle}" -N -D6.65c/-1c') # Plot the subtitle
     os.system(f'gmt text -F+cBL+t"{editors}" -N -D5.15c/-1.5c')  # Plot the editors
-    os.system(f'gmt colorbar {colorbar_settings}')  # Plot the colorbar
+    # os.system(f'gmt colorbar {colorbar_settings}')  # Plot the colorbar
     if(show_plot):  # Show the plot, if specified
         os.system(f'gmt end show')  # Show the plot
     else:  # Otherwise, just save the plot
@@ -86,7 +87,7 @@ if __name__ == '__main__':
     plot_sherical_harmonics(file_name="test_noGF_BC_01",
                             img_type="png",
                             grid_resolution="0.5",
-                            file_name_poly="../data/region_polygon.txt",
+                            file_name_poly=os.path.join(main.folder_data, "region_polygon.txt"),
                             map_projection="M-120/18c",
                             region ="-175/-110/41/62",
                             color_palette="haxby",
