@@ -406,22 +406,14 @@ if __name__ == '__main__':
     snm = np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["S"])
     love_numbers_vector = love_numbers[0:np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]).shape[0]]
     # Execute one of the following functions
-    ewh = calc_EWH(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
-    # ewh = fu.calc_EWH_fast(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
-    
+    # ewh = calc_EWH(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
+    ewh = fu.calc_EWH_fast(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
+
     # Convert the equivalent water height from laura's format into a dataset
     ewh_data = np.zeros((len(latitudes_vector_rad), len(longitudes_vector_rad)))
     ewh_data = ewh_data.tolist()
-    for index, ewh_value in enumerate(ewh):
-        for index_lon, lon in enumerate(longitudes_vector_rad):
-            if(lon == longitudes_vector_laura):
-                correct_index_lon = index_lon
-                break
-        for index_colat, colat in enumerate(colatitudes_vector_rad):
-            if(colat == colatitudes_vector_laura):
-                correct_index_colat = index_colat
-                break
-        ewh_data[correct_index_lon][correct_index_colat] = ewh_value
+    for index, value in enumerate(ewh):
+        ewh_data[int(index/len(longitudes_vector_rad))][index%len(longitudes_vector_rad)] = value
     
     main.datasets.append({"name": "ewh_2008-04",
                           "data": ewh_data,
