@@ -74,7 +74,8 @@ def plot_sherical_harmonics(file_name="test",
     os.system(f'gmt gmtset FORMAT_GEO_MAP ddd \n set ascii_file={file_name}.txt \n set grid_file={file_name}.grd \n gmt begin {file_name} {img_type} \n gmt xyz2grd %ascii_file% -R{region} -r -I{grid_resolution} -G%grid_file% -V \n gmt grd2cpt %grid_file% -C{color_palette} -Z \n gmt grdimage -J{map_projection} -R{region} %grid_file% -Q \n gmt psxy {file_name_poly} -W3,red \n gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"{title}" -W0.25p,80/80/80 -Df -V \n gmt text -F+cBL+t"{subtitle}" -N -D6.65c/-1c \n gmt text -F+cBL+t"{editors}" -N -D5.15c/-1.5c \n gmt end')
     
     # Move file to the plots folder
-    shutil.move(f'{file_name}.{img_type}', f'./plots/{file_name}.{img_type}')
+    shutil.move(os.path.join(f'{file_name}.{img_type}'), os.path.join('plots', f'{file_name}.{img_type}'))
+
 
 
 # Classes
