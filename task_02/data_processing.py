@@ -414,7 +414,7 @@ if __name__ == '__main__':
     ewh_data = ewh_data.tolist()
     for index, value in enumerate(ewh):
         ewh_data[int(index/len(longitudes_vector_rad))][index%len(longitudes_vector_rad)] = value
-    
+
     main.datasets.append({"name": "ewh_2008-04",
                           "data": ewh_data,
                           "type": "list_of_lists"})
