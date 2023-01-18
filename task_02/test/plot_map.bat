@@ -29,6 +29,7 @@ set grid_file=%file%.grd
 
 gmt begin %file% png
 
+echo Map is created ...
 REM --- create grid from given ascii file ---
 gmt xyz2grd %ascii_file% -R%region% -r -I%grid_res% -G%grid_file% -V
 
@@ -44,8 +45,11 @@ gmt grdimage -J%map_proj% -R%region% %grid_file% -Q
 gmt psxy %file_poly% -W3,red
 gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"%title%" -W0.25p,80/80/80 -Df -V 
 
-REM --- plot color scale ---
-REM gmt colorbar -Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V 
+REM --- plot legend including color scale ---
+echo Legend is created...
+REM gmt colorbar -Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V
+gmt text -F+cBL+t"Equivalent water heights (EWH)" -N -D6.65c/-1c
+gmt text -F+cBL+t"Editors: Christopher Mahn, Silas Teske, Joshua Wolf" -N -D5.15c/-1.5c
 
 gmt end show
 @echo on
