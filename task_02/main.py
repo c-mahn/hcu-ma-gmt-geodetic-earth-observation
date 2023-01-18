@@ -30,6 +30,7 @@ import platform
 # Changing these values may increase execution-time significantly or allows to
 # change the computed input or output.
 folder_data = "data"
+folder_result = "output"
 
 # These are the datasets that will be used for the computation.
 datasets = [{"name":"ITSG-Grace", "type": "gfc", "is_folder": True},
@@ -93,7 +94,7 @@ def select_dataset(datasets, key, value):
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    os.makedirs("processed_data", exist_ok=True)
+    os.makedirs(folder_result, exist_ok=True)
     __run_script("data_processing.py")
     os.makedirs("plots", exist_ok=True)
     # __run_script("data_plotting.py")
