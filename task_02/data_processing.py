@@ -466,13 +466,14 @@ if __name__ == '__main__':
 
 
     # Interpolation of missing GRACE months
+    # -----------------------------------------------
 
-
+    grace_missing_months = fu.interp_missing_months()
 
     # Estimation of the linear mass trend
+    # -----------------------------------------------
 
-
-
+    
 
 
 
