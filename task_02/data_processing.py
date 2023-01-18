@@ -419,7 +419,6 @@ if __name__ == '__main__':
                           "data": ewh_data,
                           "type": "list_of_lists"})
     ewh_csv = []
-    print(main.select_dataset(main.datasets, "name", "ewh_2008-04"))
     for i, line in enumerate(main.select_dataset(main.datasets, "name", "ewh_2008-04")["data"]):
         for j, value in enumerate(line):
             ewh_csv.append([i, j, value])
@@ -437,10 +436,9 @@ if __name__ == '__main__':
 
     # Select the grace_augmented dataset for April 2008
     grace_2008_04 = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]
-    print(grace_2008_04)
 
     # Filter the grace_augmented dataset for April 2008
-    grace_2008_04_filtered = {"date": grace_2008_04["date"], "data": {"C": [], "S": [], "sigma_C": [], "sigma_S": []}}
+    grace_2008_04_filtered = {"date": "2008-04", "data": {"C": [], "S": [], "sigma_C": [], "sigma_S": []}}
 
 
 
@@ -462,7 +460,7 @@ if __name__ == '__main__':
     # Interpolation of missing GRACE months
     # -----------------------------------------------
 
-    grace_missing_months = fu.interp_missing_months()
+    # grace_missing_months = fu.interp_missing_months()
 
     # Estimation of the linear mass trend
     # -----------------------------------------------
