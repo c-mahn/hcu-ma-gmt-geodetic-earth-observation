@@ -74,14 +74,7 @@ def import_gfc(filename):
                         "sigma_S": float(line[6])}
                 data.append(line)
 
-    # Convert matrix-data to laura's vector format
-    vector = []
-    for line in data:
-        for entry in line:
-            vector.append(entry)
-    vector = np.array(vector)
-
-    return(vector)
+    return(data)
 
 
 def import_gfc_from_folder(path):
@@ -219,7 +212,15 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
                     sum_inner += cnm[n][m]*(P[n][m]*np.cos(colatitude)*np.cos(m*longitude)) + snm[n][m]*(P[n][m]*np.cos(colatitude)*np.sin(m*longitude))
                 sum_outer += (2*n+1)/(1+k[n]) * sum_inner
             ewh[index_longitude][index_colatitude] = (M/rho*4*np.pi*R**2) * float(sum_outer)
-    return(np.array(ewh))
+
+    # Convert matrix-data to laura's vector format
+    vector = []
+    for line in ewh:
+        for entry in line:
+            vector.append(entry)
+    vector = np.array(vector)
+
+    return(vector)
 
 
 def gaussian_filtering_factors(degree, filter_radius=200000):
@@ -400,14 +401,13 @@ if __name__ == '__main__':
     
     # Calculate equivalent water height of april 2008
     print(f'[Info] Calculating equivalent water height (2008-04)', end="\r")
-    ewh = calc_EWH(longitudes_vector_laura,
-                   colatitudes_vector_laura,
-                   np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]),
-                   np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["S"]),
-                   mass,
-                   radius,
-                   rho_water,
-                   love_numbers[0:np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]).shape[0]])
+    # Get the corresponding datasets
+    cnm = np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"])
+    snm = np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["S"])
+    love_numbers_vector = love_numbers[0:np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]).shape[0]]
+    # Execute one of the following functions
+    ewh = calc_EWH(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
+    # ewh = fu.calc_EWH_fast(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
     
     # Convert the equivalent water height from laura's format into a dataset
     ewh_data = np.zeros((len(latitudes_vector_rad), len(longitudes_vector_rad)))
@@ -415,11 +415,13 @@ if __name__ == '__main__':
     for index, ewh_value in enumerate(ewh):
         for index_lon, lon in enumerate(longitudes_vector_rad):
             if(lon == longitudes_vector_laura):
+                correct_index_lon = index_lon
                 break
         for index_colat, colat in enumerate(colatitudes_vector_rad):
             if(colat == colatitudes_vector_laura):
+                correct_index_colat = index_colat
                 break
-        ewh_data[index_colat][index_lon] = ewh_value
+        ewh_data[correct_index_lon][correct_index_colat] = ewh_value
     
     main.datasets.append({"name": "ewh_2008-04",
                           "data": ewh_data,
