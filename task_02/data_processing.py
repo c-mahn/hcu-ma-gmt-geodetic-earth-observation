@@ -73,7 +73,15 @@ def import_gfc(filename):
                         "sigma_C": float(line[5]),
                         "sigma_S": float(line[6])}
                 data.append(line)
-    return(data)
+
+    # Convert matrix-data to laura's vector format
+    vector = []
+    for line in data:
+        for entry in line:
+            vector.append(entry)
+    vector = np.array(vector)
+
+    return(vector)
 
 
 def import_gfc_from_folder(path):
@@ -190,6 +198,10 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
         rho (float): density of water (in kg/m3)
         k (float): vector of Load Love numbers until same degree as given cnm and snm.
     """
+    # Converting from laura's format to our format
+    lamda = list(set(lamda))
+    theta = list(set(theta))
+
     max_degree = len(cnm)-1
     ewh = []
     for i in range(len(lamda)):
@@ -228,15 +240,15 @@ def gaussian_filtering_factors(degree, filter_radius=200000):
 
 
 def latlon_from_polygon(polygon, resolution):
-    data = fu.getGridfromPolygon(np.polygon, resolution)
+    data = fu.getGridfromPolygon(np.array(polygon), resolution)
     data = data.tolist()
     longitudes = []
     latitudes = []
     for i in data:
         longitudes.append(i[0])
         latitudes.append(i[1])
-    longitudes = set(longitudes).sort()
-    latitudes = set(latitudes).sort()
+    longitudes = list(set(longitudes))
+    latitudes = list(set(latitudes))
     return(latitudes, longitudes)
     
 
@@ -343,7 +355,19 @@ if __name__ == '__main__':
     
     # Latutude and longitude of the region of interest
     latitudes_vector_rad, longitudes_vector_rad = latlon_from_polygon(main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"], 0.5)
-    colatitudes_vector_rad = np.pi/2 - latitudes_vector_rad
+    colatitudes_vector_rad = []
+    for latitude in latitudes_vector_rad:
+        colatitudes_vector_rad.append(np.pi/2 - latitude)
+
+    # Converting to laura's format
+    colatitudes_vector_laura = []
+    longitudes_vector_laura = []
+    for colatitude in latitudes_vector_rad:
+        for longitude in longitudes_vector_rad:
+            colatitudes_vector_laura.append(colatitude)
+            longitudes_vector_laura.append(longitude)
+    colatitudes_vector_laura = np.array(colatitudes_vector_laura)
+    longitudes_vector_laura = np.array(longitudes_vector_laura)
 
     # Uncomment the following section to calculate the equivalent water height for each month
     ''' # Create new dataset for the equivalent water height of each month
@@ -376,22 +400,36 @@ if __name__ == '__main__':
     
     # Calculate equivalent water height of april 2008
     print(f'[Info] Calculating equivalent water height (2008-04)', end="\r")
+    ewh = calc_EWH(longitudes_vector_laura,
+                   colatitudes_vector_laura,
+                   np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]),
+                   np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["S"]),
+                   mass,
+                   radius,
+                   rho_water,
+                   love_numbers[0:np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]).shape[0]])
+    
+    # Convert the equivalent water height from laura's format into a dataset
+    ewh_data = np.zeros((len(latitudes_vector_rad), len(longitudes_vector_rad)))
+    ewh_data = ewh_data.tolist()
+    for index, ewh_value in enumerate(ewh):
+        for index_lon, lon in enumerate(longitudes_vector_rad):
+            if(lon == longitudes_vector_laura):
+                break
+        for index_colat, colat in enumerate(colatitudes_vector_rad):
+            if(colat == colatitudes_vector_laura):
+                break
+        ewh_data[index_colat][index_lon] = ewh_value
+    
     main.datasets.append({"name": "ewh_2008-04",
-                          "data": calc_EWH(longitudes_vector_rad,
-                                  colatitudes_vector_rad,
-                                  np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]),
-                                  np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["S"]),
-                                  mass,
-                                  radius,
-                                  rho_water,
-                                  love_numbers[0:np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]).shape[0]]).tolist(),
-                          "type": "array"})
+                          "data": ewh_data,
+                          "type": "list_of_lists"})
     ewh_csv = []
-    print(main.select_dataset(main.datasets, "name", "ewh_2008-04")["data"])
+    print(main.select_dataset(main.datasets, "name", "ewh_2008-04"))
     for i, line in enumerate(main.select_dataset(main.datasets, "name", "ewh_2008-04")["data"]):
         for j, value in enumerate(line):
             ewh_csv.append([i, j, value])
-    np.savetxt(os.path.join(main.folder_data, "output", "2008-04_ewh.csv"), ewh_csv, delimiter=";")
+    np.savetxt(os.path.join(main.folder_result, "2008-04_ewh.csv"), ewh_csv, delimiter=";")
     del ewh_csv, i, j, line, value
     print(f'[Info][Done] Creating dataset of the equivalent water height (2008-04)')
 
@@ -405,8 +443,10 @@ if __name__ == '__main__':
 
     # Select the grace_augmented dataset for April 2008
     grace_2008_04 = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]
+    print(grace_2008_04)
 
-
+    # Filter the grace_augmented dataset for April 2008
+    grace_2008_04_filtered = {"date": grace_2008_04["date"], "data": {"C": [], "S": [], "sigma_C": [], "sigma_S": []}}
 
 
 
