@@ -6,7 +6,7 @@ REM --- furthermore, you have to adjust the spacing of the grid lines
 REM --- and label spacing of the colorbar
 
 REM --- filename of ascii file (without ending) that you want to plot
-set file=test_noGF_BC_01
+set file=test_BC_01
 REM --- grid resolution in geographical degrees
 set grid_res=0.5
 REM --- filename of polygon file that outlines your averaging region
@@ -43,7 +43,7 @@ gmt grd2cpt %grid_file% -C%color_palette% -Z
 REM --- plot grid ---
 gmt grdimage -J%map_proj% -R%region% %grid_file% -Q
 gmt psxy %file_poly% -W3,red
-gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"%title%" -W0.25p,80/80/80 -Df -V 
+gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"%title%" -W0.25p,80/80/80 -Df -N1/1.25p,black -V 
 
 REM --- plot legend including color scale ---
 echo Legend is created...
