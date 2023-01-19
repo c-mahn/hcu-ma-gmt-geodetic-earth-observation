@@ -33,7 +33,6 @@ gravity_constant    = 3.986005000e+14   # m^3 / (kg * s^2)
 normal_gravity      = 9.80665           # m / s^2
 radius              = 6.378137000e+06   # m
 mass                = 5.9722*10**24     # kg
-height              = radius+450000     # m
 degree_n            = 96
 order_m             = 20                
 rho_grad            = 180/np.pi

@@ -12,10 +12,10 @@ set grid_res=0.5
 REM --- filename of polygon file that outlines your averaging region
 set file_poly=../data/region_polygon.txt
 REM --- map projection (second line is example for Greenland)
-set map_proj=M-120/18c
+set map_proj=B-130/65/45/65/18c
 REM set map_proj=B-45/75/60/75/18c
 REM --- region
-set region=-175/-110/41/62
+set region=-145/-110/45/65
 REM --- color palette
 set color_palette=haxby
 REM --- map title
