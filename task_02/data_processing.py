@@ -25,6 +25,7 @@ import os
 # from scipy.fft import fft, fftfreq
 # from scipy import signal
 import functions as fu
+import json
 
 # Constants
 # -----------------------------------------------------------------------------
@@ -341,7 +342,7 @@ if __name__ == '__main__':
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # Create new dataset for the output
-    output_datasets = {"name": "grace_augmented", "data": []}
+    new_dataset = {"name": "grace_augmented", "data": []}
 
     # Load the static grace observation model and assemble it into matrices
     itsg_grace_2018 = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")["data"]
@@ -386,17 +387,17 @@ if __name__ == '__main__':
         itsg_grace_matrix_sigma_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_sigma_s, operator="+")
 
         # Append the monthly augmented grace dataset
-        output_datasets["data"].append({"date": itsg_grace["date"], "data": {"C": itsg_grace_matrix_c,
-                                                                             "S": itsg_grace_matrix_s,
-                                                                             "sigma_C": itsg_grace_matrix_sigma_c,
-                                                                             "sigma_S": itsg_grace_matrix_sigma_s}})
+        new_dataset["data"].append({"date": itsg_grace["date"], "data": {"C": itsg_grace_matrix_c,
+                                                                         "S": itsg_grace_matrix_s,
+                                                                         "sigma_C": itsg_grace_matrix_sigma_c,
+                                                                         "sigma_S": itsg_grace_matrix_sigma_s}})
 
     # Append all the datasets to the main datasets
-    main.datasets.append(output_datasets)
+    main.datasets.append(new_dataset)
     print(f'[Info][Done] Creating dataset of the augmented gravity field models')
 
     # Remove the temporary variables
-    del output_datasets
+    del new_dataset
     del itsg_grace_2018_matrix_c, itsg_grace_2018_matrix_s, itsg_grace_2018_matrix_sigma_c, itsg_grace_2018_matrix_sigma_s
     del itsg_grace_matrix_c, itsg_grace_matrix_s, itsg_grace_matrix_sigma_c, itsg_grace_matrix_sigma_s
     del deg1_matrix_c, deg1_matrix_s, deg1_matrix_sigma_c, deg1_matrix_sigma_s
@@ -503,7 +504,14 @@ if __name__ == '__main__':
                             for index_y, y in enumerate(dataset["axis"][1]):
                                 f.write(f'{x}; {y}; {dataset["data"][index_x][index_y]}\n')
                 except:
-                    print(f'[Error] Could not save dataset {dataset["name"]}')
+                    print(f'[Info] Could not save dataset {dataset["name"]} as a csv file, trying json...')
+                    try:
+                        os.remove(os.path.join("output", f'{dataset["name"]}.csv'))
+                        with open(os.path.join("output", f'{dataset["name"]}.json'), 'w') as f:
+                            json.dump(dataset, f)
+                    except:
+                        print(f'[Error] Could not save dataset {dataset["name"]} as a json file')
+                        os.remove(os.path.join("output", f'{dataset["name"]}.json'))
             elif(type(dataset["data"]) is list):
                 for subdataset in dataset["data"]:
                     try:
@@ -512,6 +520,13 @@ if __name__ == '__main__':
                                 for index_y, y in enumerate(subdataset["axis"][1]):
                                     f.write(f'{x}; {y}; {subdataset["data"][index_x][index_y]}\n')
                     except:
-                        print(f'[Error] Could not save dataset {dataset["name"]}_{subdataset["date"]}')
+                        print(f'[Info] Could not save dataset {dataset["name"]} as a csv file, trying json...')
+                        try:
+                            os.remove(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'))
+                            with open(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.json'), 'w') as f:
+                                json.dump(subdataset, f)
+                        except:
+                            print(f'[Error] Could not save dataset {dataset["name"]} as a json file')
+                            os.remove(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.json'))
         except:
             print(f'[Info] Skipping a dataset with no data')
