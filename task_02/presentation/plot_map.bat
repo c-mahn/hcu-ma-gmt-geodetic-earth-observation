@@ -22,7 +22,7 @@ set title=British Columbia, Canada
 
 REM =============================================================
 REM --- other variables ----
-set ascii_file=%file%.csv
+set ascii_file=../output/%file%.csv
 set grid_file=%file%.grd
 
 
