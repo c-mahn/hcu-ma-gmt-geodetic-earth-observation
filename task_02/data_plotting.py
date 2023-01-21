@@ -25,7 +25,7 @@ import main
 def plot_sherical_harmonics(file_name="test",
                             img_type="png",
                             grid_resolution="0.5",
-                            file_name_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                            file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
                             map_projection="B-130/65/45/65/18c",
                             region ="-145/-110/45/65",
                             color_palette="haxby",
@@ -55,13 +55,13 @@ def plot_sherical_harmonics(file_name="test",
     """
 
     os.system(f'gmt gmtset FORMAT_GEO_MAP ddd')     # Set the format of the map
-    os.system(f'set ascii_file={file_name}.txt')    # Set the ascii file
+    os.system(f'set ascii_file=../output/{file_name}.csv')    # Set the ascii file
     os.system(f'set grid_file={file_name}.grd')     # Set the grid file
     os.system(f'gmt begin {file_name} {img_type}')  # Start the plot
     os.system(f'gmt xyz2grd %ascii_file% -R{region} -r -I{grid_resolution} -G%grid_file% -V')           # Convert the ascii file to a grid file
     os.system(f'gmt grd2cpt %grid_file% -C{color_palette} -Z')                                          # Create the color palette for the grid file
     os.system(f'gmt grdimage -J{map_projection} -R{region} %grid_file% -Q')                             # Plot the grid file                    
-    os.system(f'gmt psxy {file_name_poly} -W3,red')                                                     # Plot region polygon
+    os.system(f'gmt psxy {file_poly} -W3,red')                                                          # Plot region polygon
     os.system(f'gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"{title}" -W0.25p,80/80/80 -Df -N1/1.25p,black -V')   # Plot the coastline and the title
     os.system(f'gmt text -F+cBL+t"{subtitle}" -N -D6.65c/-1c')  # Plot the subtitle
     os.system(f'gmt text -F+cBL+t"{editors}" -N -D5.15c/-1.5c') # Plot the editors
@@ -87,10 +87,10 @@ def plot_sherical_harmonics(file_name="test",
 
 if __name__ == '__main__':
     # Plotting of the EWH
-    plot_sherical_harmonics(file_name="test_BC_01",
+    plot_sherical_harmonics(file_name="2008-04_ewh",
                             img_type="png",
                             grid_resolution="0.5",
-                            file_name_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                            file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
                             map_projection="B-130/65/45/65/18c",
                             region ="-145/-110/45/65",
                             color_palette="haxby",
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     plot_sherical_harmonics(file_name="test_BC_01",
                             img_type="png",
                             grid_resolution="0.5",
-                            file_name_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                            file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
                             map_projection="B-130/65/45/65/18c",
                             region ="-145/-110/45/65",
                             color_palette="haxby",
