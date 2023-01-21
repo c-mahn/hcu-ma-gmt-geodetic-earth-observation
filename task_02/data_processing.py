@@ -141,17 +141,17 @@ def export_data(dataset):
     try:
         if(type(dataset["data"]) is np.ndarray):
             try:
-                latitudes = dataset["axis"][0]
+                longitudes = dataset["axis"][0]
                 colatitudes = dataset["axis"][1]
-                if(colatitudes[0] - colatitudes[1] == latitudes[0] - latitudes[1]):
+                if(colatitudes[0] - colatitudes[1] == longitudes[0] - longitudes[1]):
                     spacing = colatitudes[1] - colatitudes[0]
                 matrix = np.zeros((360, 180))
-                for latitude in range(-180, 180, spacing):
+                for longitude in range(-180, 180, spacing):
                     for colatitude in range(0, 180, spacing):
-                        for lat_index, lat in enumerate(latitudes):
+                        for long_index, long in enumerate(longitudes):
                             for colat_index, col in enumerate(colatitudes):
-                                if(int(lat) == latitude and int(col) == colatitude):
-                                    matrix[latitude][colatitude] = dataset["data"][lat_index][colat_index]
+                                if(int(long) == longitude and int(col) == colatitude):
+                                    matrix[longitude][colatitude] = dataset["data"][long_index][colat_index]
                 fu.save_global_grid(matrix, os.path.join("output", f'{dataset["name"]}.nc'))
             except:
                 try:
@@ -233,7 +233,7 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
 
     Args:
         lamda (float): vector containing longitudes (in radian) for each position where the EWH shall be evaluated.
-        theta (float): vector containing co-latitudes (in radian) for each position where the EWH shall be evaluated.
+        theta (float): vector containing co-longitudes (in radian) for each position where the EWH shall be evaluated.
         cnm (list): triangular matrix containing the spherical harmonic coefficients from which the EWH shall be computed
         snm (list): triangular matrix containing the spherical harmonic coefficients from which the EWH shall be computed
         M (int): mass of the earth in kg
@@ -274,17 +274,17 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
         area (list, optional): Area for which the EWH shall be calculated. Defaults to None and the whole earth is used.
         
     Returns:
-        dict: Dataset containing the EWH with keys "latitudes", "colatitudes" and "data".
-            latitudes (list): List of latitudes.
+        dict: Dataset containing the EWH with keys "longitudes", "colatitudes" and "data".
+            longitudes (list): List of longitudes.
             colatitudes (list): List of colatitudes.
             data (list): Numpy array containing the EWH.
     """
     if(area is None):
         # Get the pixels from the whole earth
         pixels = []
-        for latitude in range(-180, 180, spacing):
+        for longitude in range(-180, 180, spacing):
             for colatitude in range(0, 180, spacing):
-                pixels.append([latitude, colatitude])
+                pixels.append([longitude, colatitude])
         pixels = np.array(pixels)
     else:
         # Get the pixels from the given area
@@ -292,27 +292,31 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
 
     # Create the vectors for the coordinates
     lamda = np.radians(pixels[:, 0])
-    theta = np.radians(90 - pixels[:, 1])
+    theta = np.radians(pixels[:, 1]+90)
+
     
     # Calculate the EWH (either fast or slow)
     result = calc_EWH(lamda, theta, np.array(dataset["C"]), np.array(dataset["S"]), M, R, rho, k)
     # result = fu.calc_EWH_fast(lamda, theta, np.array(dataset["C"]), np.array(dataset["S"]), M, R, rho, k)
 
-    # Get the latitudes and colatitudes
+    # Get the longitudes and colatitudes
+    longitudes = []
     latitudes = []
-    colatitudes = []
     for pixel in pixels:
-        latitudes.append(float(pixel[0]))
-        colatitudes.append(float(pixel[1]))
+        longitudes.append(float(pixel[0]))
+        latitudes.append(float(pixel[1]))
+    longitudes = sorted(list(set(longitudes)))
     latitudes = sorted(list(set(latitudes)))
-    colatitudes = sorted(list(set(colatitudes)))
     
+    # print("Longitudes: ", longitudes)
+    # print("Colatitudes: ", colatitudes)
+
     # Convert the result to the correct format
     assembly = []
     for i, e in enumerate(result):
-        assembly.append({"lat": int(pixels[i][0]-latitudes[0]), "col": int(pixels[i][1]-colatitudes[0]), "value": float(e)})
-    result_matrix = assemble_matrix(assembly, value_index="value", coord_indices=["lat", "col"])
-    new_dataset = {"latitudes": latitudes, "colatitudes": colatitudes, "data": result_matrix}
+        assembly.append({"long": int(pixels[i][0]-longitudes[0]), "lat": int(pixels[i][1]-(latitudes[0])), "value": float(e)})
+    result_matrix = assemble_matrix(assembly, value_index="value", coord_indices=["long", "lat"])
+    new_dataset = {"longitudes": longitudes, "colatitudes": latitudes, "data": result_matrix}
     return(new_dataset)
 
 
@@ -446,7 +450,7 @@ if __name__ == '__main__':
     new_dataset = apply_ewh(selected_grace, mass, radius, rho_water, love_numbers, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
     main.datasets.append({"name": f'ewh_{selected_date}',
                           "data": new_dataset["data"],
-                          "axis": [new_dataset["latitudes"], new_dataset["colatitudes"]]})
+                          "axis": [new_dataset["longitudes"], new_dataset["colatitudes"]]})
     del new_dataset  # Remove the temporary variable
     print(f'[Info][Done] Calculating the unfiltered equivalent water height')
 
@@ -473,7 +477,7 @@ if __name__ == '__main__':
     new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
     main.datasets.append({"name": f'ewh_{selected_date}_filtered_{filter_radius}km',
                           "data": new_dataset["data"],
-                          "axis": [new_dataset["latitudes"], new_dataset["colatitudes"]]})
+                          "axis": [new_dataset["longitudes"], new_dataset["colatitudes"]]})
     del new_dataset  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered)')
 
@@ -491,7 +495,7 @@ if __name__ == '__main__':
         new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
         main.datasets.append({"name": f'ewh_{selected_date}_filtered_{filter_radius}km',
                               "data": new_dataset["data"],
-                              "axis": [new_dataset["latitudes"], new_dataset["colatitudes"]]})
+                              "axis": [new_dataset["longitudes"], new_dataset["colatitudes"]]})
         del new_dataset  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
     
