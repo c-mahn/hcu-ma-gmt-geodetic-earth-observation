@@ -99,4 +99,17 @@ if __name__ == '__main__':
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
                             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V',
                             show_plot=False)
-
+"""
+    plot_sherical_harmonics(file_name="test_BC_01",
+                            img_type="png",
+                            grid_resolution="0.5",
+                            file_name_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                            map_projection="B-130/65/45/65/18c",
+                            region ="-145/-110/45/65",
+                            color_palette="haxby",
+                            title="British Columbia, Canada",
+                            subtitle="Equivalent water heights (EWH)",
+                            editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V',
+                            show_plot=False)
+"""
