@@ -65,7 +65,7 @@ def plot_sherical_harmonics(file_name="test",
     os.system(f'gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"{title}" -W0.25p,80/80/80 -Df -N1/1.25p,black -V')   # Plot the coastline and the title
     os.system(f'gmt text -F+cBL+t"{subtitle}" -N -D6.65c/-1c')  # Plot the subtitle
     os.system(f'gmt text -F+cBL+t"{editors}" -N -D5.15c/-1.5c') # Plot the editors
-    os.system(f'gmt colorbar {colorbar_settings}')               # Plot the colorbar
+    os.system(f'gmt colorbar {colorbar_settings}')              # Plot the colorbar
     os.system(f'gmt end')
         
     if(show_plot):  # Show the plot, if specified
