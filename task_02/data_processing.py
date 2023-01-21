@@ -137,6 +137,35 @@ def import_data(dataset):
     return(data)
 
 
+def export_data(dataset):
+    try:
+        if(type(dataset["data"]) is np.ndarray):
+            try:
+                latitudes = dataset["axis"][0]
+                colatitudes = dataset["axis"][1]
+                if(colatitudes[0] - colatitudes[1] == latitudes[0] - latitudes[1]):
+                    spacing = colatitudes[1] - colatitudes[0]
+                matrix = np.zeros((360, 180))
+                for latitude in range(-180, 180, spacing):
+                    for colatitude in range(0, 180, spacing):
+                        for lat_index, lat in enumerate(latitudes):
+                            for colat_index, col in enumerate(colatitudes):
+                                if(int(lat) == latitude and int(col) == colatitude):
+                                    matrix[latitude][colatitude] = dataset["data"][lat_index][colat_index]
+                fu.save_global_grid(matrix, os.path.join("output", f'{dataset["name"]}.nc'))
+            except:
+                try:
+                    with open(os.path.join("output", f'{dataset["name"]}.json'), 'w') as f:
+                        json.dump(dataset, f)
+                except:
+                    os.remove(os.path.join("output", f'{dataset["name"]}.json'))
+        elif(type(dataset["data"]) is list):
+            for subdataset in dataset["data"]:
+                export_data(subdataset)
+    except:
+        pass
+
+
 def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
     """
     This function is used to assemble a matrix from the data.
@@ -493,40 +522,7 @@ if __name__ == '__main__':
 
 
 
-    # Attempt to save all datasets as netCDF files
+    # Attempt to save all datasets
     
     for dataset in main.datasets:
-        try:
-            if(type(dataset["data"]) is np.ndarray):
-                try:
-                    with open(os.path.join("output", f'{dataset["name"]}.csv'), 'w') as f:
-                        for index_x, x in enumerate(dataset["axis"][0]):
-                            for index_y, y in enumerate(dataset["axis"][1]):
-                                f.write(f'{x}; {y}; {dataset["data"][index_x][index_y]}\n')
-                except:
-                    print(f'[Info] Could not save dataset {dataset["name"]} as a csv file, trying json...')
-                    try:
-                        os.remove(os.path.join("output", f'{dataset["name"]}.csv'))
-                        with open(os.path.join("output", f'{dataset["name"]}.json'), 'w') as f:
-                            json.dump(dataset, f)
-                    except:
-                        print(f'[Error] Could not save dataset {dataset["name"]} as a json file')
-                        os.remove(os.path.join("output", f'{dataset["name"]}.json'))
-            elif(type(dataset["data"]) is list):
-                for subdataset in dataset["data"]:
-                    try:
-                        with open(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'), 'w') as f:
-                            for index_x, x in enumerate(subdataset["axis"][0]):
-                                for index_y, y in enumerate(subdataset["axis"][1]):
-                                    f.write(f'{x}; {y}; {subdataset["data"][index_x][index_y]}\n')
-                    except:
-                        print(f'[Info] Could not save dataset {dataset["name"]} as a csv file, trying json...')
-                        try:
-                            os.remove(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'))
-                            with open(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.json'), 'w') as f:
-                                json.dump(subdataset, f)
-                        except:
-                            print(f'[Error] Could not save dataset {dataset["name"]} as a json file')
-                            os.remove(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.json'))
-        except:
-            print(f'[Info] Skipping a dataset with no data')
+        export_data(dataset)
