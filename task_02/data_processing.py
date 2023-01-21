@@ -449,17 +449,20 @@ if __name__ == '__main__':
     # ------------------------------------------------
     
     filter_radius = 300
+    selected_date = "2008-04"
 
     # Create new dataset for the filtered spherical harmonic coefficients
     print(f'[Info] Filtering the spherical harmonic coefficients', end="\r")
-    grace_2008_04_filtered = {"name": "gaussian_filter_coefficients"}
+    grace_single_filtered = {"name": "gaussian_filter_coefficients"}
 
     # Select the grace_augmented dataset for April 2008
-    grace_2008_04 = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]
+    grace_single = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", selected_date)["data"]
 
     # Filter the grace_augmented dataset for April 2008
-    grace_2008_04_filtered["C"] = apply_gaussian_filtering(grace_2008_04["C"], filter_radius)
-    grace_2008_04_filtered["S"] = apply_gaussian_filtering(grace_2008_04["S"], filter_radius)
+    grace_single_filtered["C"] = apply_gaussian_filtering(grace_single["C"], filter_radius)
+    grace_single_filtered["S"] = apply_gaussian_filtering(grace_single["S"], filter_radius)
+    grace_single_filtered["date"] = grace_single["date"]
+    
     print(f'[Info][Done] Creating dataset of the filtered spherical harmonic coefficients')
 
 
