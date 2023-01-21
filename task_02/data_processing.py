@@ -208,7 +208,8 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
             for n in range(max_degree):
                 sum_inner = 0
                 for m in range(n):
-                    sum_inner += cnm[n][m]*(P[n][m]*np.cos(colatitude)*np.cos(m*longitude)) + snm[n][m]*(P[n][m]*np.cos(colatitude)*np.sin(m*longitude))
+                    sum_inner += cnm[n][m]*(P[n][m]*np.cos(m*longitude)) + snm[n][m]*(P[n][m]*np.sin(m*longitude))
+                    # sum_inner += cnm[n][m]*(P[n][m]*np.cos(colatitude)*np.cos(m*longitude)) + snm[n][m]*(P[n][m]*np.cos(colatitude)*np.sin(m*longitude))
                 sum_outer += (2*n+1)/(1+k[n]) * sum_inner
             ewh[index_longitude][index_colatitude] = (M/rho*4*np.pi*R**2) * float(sum_outer)
 
