@@ -222,21 +222,41 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
     return(vector)
 
 
-def gaussian_filtering_factors(degree, filter_radius=200000):
+def gaussian_filtering_factors(degree, filter_radius=200):
     """
     This function is used to calculate the gaussian filtering factors.
 
     Args:
         degree (int): Maximum degree for which the factors are calculated.
-        filter_radius (int, optional): Filter radius in meters. Defaults to 200000.
+        filter_radius (int, optional): Filter radius in kilometers. Defaults to 200000.
     """
+    filter_radius = filter_radius * 1000
     b = (np.log(2)) / (1-np.cos(filter_radius/radius))
     w_0 = 1
     w_1 = (1+np.e**(-2*b)) / (1-np.e**(-2*b)) - (1/b)
     w = [w_0, w_1]
     while(len(w) < degree):
         w.append((-(2*len(w)-1) / b) * w[-1] + w[-2])
+    np.array(w)
     return(w)
+
+
+def apply_gaussian_filtering(matrix, degree="auto", filter_radius=200):
+    """
+    This function is used to apply the gaussian filtering to the given matrix.
+
+    Args:
+        matrix (list): Matrix which shall be filtered.
+        degree (int): Maximum degree for which the factors are calculated. Defaults to "auto".
+        filter_radius (int, optional): Filter radius in kilometers. Defaults to 200000.
+    """
+    if(degree == "auto"):
+        degree = np.shape(matrix)[0]
+    w = gaussian_filtering_factors(degree, filter_radius)
+    for i in range(len(matrix)):
+        for j in range(len(matrix[i])):
+            matrix[i][j] *= w[i]
+    return(matrix)
 
 
 def latlon_from_polygon(polygon, resolution):
@@ -427,17 +447,20 @@ if __name__ == '__main__':
 
     # Filtering of the spherical harmonic coefficients
     # ------------------------------------------------
+    
+    filter_radius = 300
 
     # Create new dataset for the filtered spherical harmonic coefficients
     print(f'[Info] Filtering the spherical harmonic coefficients', end="\r")
-    dataset_grace_filtered = {"name": "gaussian_filter_coefficients", "data": gaussian_filtering_factors(degree_n, filter_radius=300000)}
-    print(f'[Info][Done] Creating dataset of the filtered spherical harmonic coefficients')
+    grace_2008_04_filtered = {"name": "gaussian_filter_coefficients"}
 
     # Select the grace_augmented dataset for April 2008
     grace_2008_04 = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]
 
     # Filter the grace_augmented dataset for April 2008
-    grace_2008_04_filtered = {"date": "2008-04", "data": {"C": [], "S": [], "sigma_C": [], "sigma_S": []}}
+    grace_2008_04_filtered["C"] = apply_gaussian_filtering(grace_2008_04["C"], filter_radius)
+    grace_2008_04_filtered["S"] = apply_gaussian_filtering(grace_2008_04["S"], filter_radius)
+    print(f'[Info][Done] Creating dataset of the filtered spherical harmonic coefficients')
 
 
 
