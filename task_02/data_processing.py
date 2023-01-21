@@ -113,6 +113,26 @@ def import_csv(filename, delimiter=";"):
             except:
                 line[index] = entry.strip()
         data.append(line)
+    data = np.array(data)
+    return(data)
+
+
+def import_data(dataset):
+    if(dataset["type"] == "gfc"):
+        if(dataset["is_folder"]):
+            data = import_gfc_from_folder(os.path.join(main.folder_data, dataset["name"]))
+        else:
+            data = import_gfc(os.path.join(main.folder_data, dataset["name"]))
+    elif(dataset["type"] == "csv"):
+        data = import_csv(os.path.join(main.folder_data, dataset["name"]), delimiter=dataset["delimiter"])
+    elif(dataset["type"] == "single_column"):
+        content = import_csv(os.path.join(main.folder_data, dataset["name"]), delimiter="\n")
+        data = []
+        for entry in content:
+            data.append(entry[0])
+    else:
+        print(f'[Error] The dataset {dataset["name"]} has an unknown type')
+        return(None)
     return(data)
 
 
@@ -190,9 +210,6 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
         rho (float): density of water (in kg/m3)
         k (float): vector of Load Love numbers until same degree as given cnm and snm.
     """
-    # Converting from laura's format to our format
-    lamda = list(set(lamda))
-    theta = list(set(theta))
 
     max_degree = len(cnm)-1
     ewh = []
@@ -221,6 +238,38 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
     vector = np.array(vector)
 
     return(vector)
+
+
+def apply_ewh(dataset, M, R, rho, k, spacing=1, area="global"):
+    if(area == "global"):
+        # Get the pixels from the whole earth
+        pixels = []
+        for longitude in range(-180, 180, spacing):
+            for colatitude in range(0, 180, spacing):
+                pixels.append([longitude, colatitude])
+        pixels = np.array(pixels)
+    else:
+        # Get the pixels from the given area
+        pixels = fu.getGridfromPolygon(area, spacing)[:, :2]
+
+    # Create the vectors for the coordinates
+    lamda = np.radians(pixels[:, 0])
+    theta = np.radians(90 - pixels[:, 1])
+    
+    # Calculate the EWH
+    result = calc_EWH(lamda, theta, dataset["C"], dataset["S"], M, R, rho, k)
+
+    # Get the latitudes and colatitudes
+    latitudes = set(list(pixels[:, 1]))
+    colatitudes = set(list(pixels[:, 0]))
+    
+    # Convert the result to the correct format
+    assembly = []
+    for i, e in enumerate(result):
+        assembly.append({"lat": latitudes[i], "col": colatitudes[i], "value": float(e)})
+    result_matrix = assemble_matrix(assembly, value_index="value", coord_indices=["lat", "col"])
+    new_dataset = {"latitudes": latitudes, "colatitudes": colatitudes, "data": result_matrix}
+    return(new_dataset)
 
 
 def gaussian_filtering_factors(degree, filter_radius=200):
@@ -284,22 +333,7 @@ if __name__ == '__main__':
 
     for index, dataset in enumerate(main.datasets):
         print(f'[Info][{index+1}/{len(main.datasets)}] Importing dataset: {dataset["name"]}')
-        if(dataset["type"] == "gfc"):
-            if(dataset["is_folder"]):
-                data = import_gfc_from_folder(os.path.join(main.folder_data, dataset["name"]))
-            else:
-                data = import_gfc(os.path.join(main.folder_data, dataset["name"]))
-        elif(dataset["type"] == "csv"):
-            data = import_csv(os.path.join(main.folder_data, dataset["name"]), delimiter=dataset["delimiter"])
-        elif(dataset["type"] == "single_column"):
-            content = import_csv(os.path.join(main.folder_data, dataset["name"]), delimiter="\n")
-            data = []
-            for entry in content:
-                data.append(entry[0])
-        else:
-            print(f'[Error] The dataset {dataset["name"]} has an unknown type')
-            continue
-        main.datasets[index]["data"] = data
+        main.datasets[index]["data"] = import_data(dataset)
     print(f'[Info] Importing datasets finished')
 
 
@@ -370,102 +404,48 @@ if __name__ == '__main__':
 
     # Calculate the equivalent water height
     # -------------------------------------
+    
+    selected_date = "2008-04"  # April 2008
+    selected_grace = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", selected_date)["data"]
 
     # Loading the love numbers
-    love_numbers = np.array(main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"])
+    love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
     
-    # Latutude and longitude of the region of interest
-    latitudes_vector_rad, longitudes_vector_rad = latlon_from_polygon(main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"], 0.5)
-    colatitudes_vector_rad = []
-    for latitude in latitudes_vector_rad:
-        colatitudes_vector_rad.append(np.pi/2 - latitude)
-
-    # Converting to laura's format
-    colatitudes_vector_laura = []
-    longitudes_vector_laura = []
-    for colatitude in latitudes_vector_rad:
-        for longitude in longitudes_vector_rad:
-            colatitudes_vector_laura.append(colatitude)
-            longitudes_vector_laura.append(longitude)
-    colatitudes_vector_laura = np.array(colatitudes_vector_laura)
-    longitudes_vector_laura = np.array(longitudes_vector_laura)
-
-    # Uncomment the following section to calculate the equivalent water height for each month
-    ''' # Create new dataset for the equivalent water height of each month
-    dataset_ewh = {"name": "ewh_monthly", "data": []}
-
-    length = len(main.select_dataset(main.datasets, "name", "grace_augmented")["data"])  # Just for the progress bar
-    for index, dataset in enumerate(main.select_dataset(main.datasets, "name", "grace_augmented")["data"]):
-        print(f'[Info][{index+1}/{length}] Calculating equivalent water height ({dataset["date"]})', end="\r")  # Progress bar
-
-        # Get the corresponding dataset
-        dataset_date = dataset["date"]
-        data = dataset["data"]
-
-        # Converting the spherical harmonic coefficients into numpy-matrices
-        cnm_matrix = np.array(data["C"])
-        snm_matrix= np.array(data["S"])
-
-        # Calculating the unfiltered equivalent water heights (ewh)
-
-        # ewh = calc_EWH(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers[0:cnm_matrix.shape[0]])
-        ewh = fu.calc_EWH_fast(longitudes_vector_rad, colatitudes_vector_rad, cnm_matrix, snm_matrix, mass, radius, rho_water, love_numbers[0:cnm_matrix.shape[0]])
-        dataset_ewh["data"].append({"date": dataset_date, "data": ewh})
-
-    # Append the equivalent water height dataset
-    main.datasets.append(dataset_ewh)
-    print(f'[Info][Done] Creating dataset of the equivalent water height')
-
-    # Remove the temporary variables
-    del love_numbers, longitudes_vector, colatitudes_vector, cnm_matrix, snm_matrix, ewh '''
-    
-    # Calculate equivalent water height of april 2008
-    print(f'[Info] Calculating equivalent water height (2008-04)', end="\r")
-    # Get the corresponding datasets
-    cnm = np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"])
-    snm = np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["S"])
-    love_numbers_vector = love_numbers[0:np.array(main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", "2008-04")["data"]["C"]).shape[0]]
-    # Execute one of the following functions
-    # ewh = calc_EWH(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
-    ewh = fu.calc_EWH_fast(longitudes_vector_laura, colatitudes_vector_laura, cnm, snm, mass, radius, rho_water, love_numbers_vector)
-
-    # Convert the equivalent water height from laura's format into a dataset
-    ewh_data = np.zeros((len(latitudes_vector_rad), len(longitudes_vector_rad)))
-    ewh_data = ewh_data.tolist()
-    for index, value in enumerate(ewh):
-        ewh_data[int(index/len(longitudes_vector_rad))][index%len(longitudes_vector_rad)] = value
-
-    main.datasets.append({"name": "ewh_2008-04",
-                          "data": ewh_data,
-                          "type": "list_of_lists"})
-    ewh_csv = []
-    for i, line in enumerate(main.select_dataset(main.datasets, "name", "ewh_2008-04")["data"]):
-        for j, value in enumerate(line):
-            ewh_csv.append([i, j, value])
-    np.savetxt(os.path.join(main.folder_result, "2008-04_ewh.csv"), ewh_csv, delimiter=";")
-    del ewh_csv, i, j, line, value
-    print(f'[Info][Done] Creating dataset of the equivalent water height (2008-04)')
+    new_dataset = apply_ewh(selected_grace, mass, radius, rho_water, love_numbers, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+    main.datasets.append({"name": f'ewh_{selected_date}',
+                          "ewh": new_dataset["ewh"],
+                          "axis": [new_dataset["latitudes"], new_dataset["colatitudes"]]})
+    del new_dataset  # Remove the temporary variable
 
     # Filtering of the spherical harmonic coefficients
     # ------------------------------------------------
     
-    filter_radius = 300
-    selected_date = "2008-04"
+    filter_radius = 300  # km
 
     # Create new dataset for the filtered spherical harmonic coefficients
     print(f'[Info] Filtering the spherical harmonic coefficients', end="\r")
     grace_single_filtered = {"name": "gaussian_filter_coefficients"}
 
-    # Select the grace_augmented dataset for April 2008
+    # Select the specified grace_augmented dataset for the month
     grace_single = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", selected_date)["data"]
 
-    # Filter the grace_augmented dataset for April 2008
-    grace_single_filtered["C"] = apply_gaussian_filtering(grace_single["C"], filter_radius)
-    grace_single_filtered["S"] = apply_gaussian_filtering(grace_single["S"], filter_radius)
-    grace_single_filtered["date"] = grace_single["date"]
+    # Filter the selected grace_augmented dataset for the month
+    grace_single_filtered["C"] = apply_gaussian_filtering(grace_single["C"], filter_radius=filter_radius)
+    grace_single_filtered["S"] = apply_gaussian_filtering(grace_single["S"], filter_radius=filter_radius)
+    grace_single_filtered["date"] = selected_date
+    grace_single_filtered["sigma_C"] = grace_single["sigma_C"]
+    grace_single_filtered["sigma_S"] = grace_single["sigma_S"]
     
     print(f'[Info][Done] Creating dataset of the filtered spherical harmonic coefficients')
+    
+    # Create dataset with the ewh for the region of interest
+    new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+    main.datasets.append({"name": f'ewh_{selected_date}_filtered_{filter_radius}km',
+                          "ewh": new_dataset["ewh"],
+                          "axis": [new_dataset["latitudes"], new_dataset["colatitudes"]]})
 
+    # Again, but with different filter radii
+    
 
 
     # Computation of a time series of region averages
