@@ -131,6 +131,7 @@ def import_data(dataset):
         data = []
         for entry in content:
             data.append(float(entry[0]))
+        data = np.array(data)
     else:
         print(f'[Error] The dataset {dataset["name"]} has an unknown type')
         return(None)
@@ -204,7 +205,6 @@ def matrix_math(matrix1, matrix2, operator="+"):
     shape_2 = [len(matrix2), len(matrix2[0])]
     shape = [max(shape_1[0], shape_2[0]), max(shape_1[1], shape_2[1])]
     matrix = np.zeros((shape[0], shape[1]))
-    matrix = matrix.tolist()
     shape = [len(matrix), len(matrix[0])]
     # print(f'[Info] Combining two matrices with shapes {shape_1[0]}x{shape_1[1]} {operator} {shape_2[0]}x{shape_2[1]} = {shape[0]}x{shape[1]}')
 
@@ -297,10 +297,12 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
     lamda = np.radians(pixels[:, 0])
     theta = np.radians(pixels[:, 1]+90)
 
-    
+    # Cut the k vector to the same length as the cnm and snm
+    k = k[0:np.shape(dataset["C"])[0]]  # Needed for the fast version (in the slow version the other values are ignored)
+
     # Calculate the EWH (either fast or slow)
-    result = calc_EWH(lamda, theta, np.array(dataset["C"]), np.array(dataset["S"]), M, R, rho, k)
-    # result = fu.calc_EWH_fast(lamda, theta, np.array(dataset["C"]), np.array(dataset["S"]), M, R, rho, k)
+    # result = calc_EWH(lamda, theta, np.array(dataset["C"]), np.array(dataset["S"]), M, R, rho, k)
+    result = fu.calc_EWH_fast(lamda, theta, dataset["C"], dataset["S"], M, R, rho, k)
 
     # Get the longitudes and colatitudes
     longitudes = []
@@ -310,11 +312,13 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
         latitudes.append(float(pixel[1]))
     longitudes = sorted(list(set(longitudes)))
     latitudes = sorted(list(set(latitudes)))
-    
+
+    # Create the result matrix
     result_matrix = np.zeros((len(latitudes), len(longitudes)))
     for index, entry in enumerate(result):
         result_matrix[int(index/len(longitudes))][index%len(longitudes)] = float(entry)
-    
+
+    # Create the new dataset and return it
     new_dataset = {"longitudes": longitudes, "latitudes": latitudes, "data": result_matrix, "area_weights": area_weight}
     return(new_dataset)
 
