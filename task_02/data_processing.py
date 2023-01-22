@@ -140,23 +140,17 @@ def import_data(dataset):
 
 def export_data(dataset):
     try:
-        if(type(dataset["data"]) is np.ndarray):
-            try:
-                with open(os.path.join("output", f'{dataset["name"]}.csv'), 'w') as f:
-                        for index_x, x in enumerate(dataset["axis"][0]):
-                            for index_y, y in enumerate(dataset["axis"][1]):
-                                f.write(f'{x}; {y}; {dataset["data"][index_x][index_y]}\n')
-            except:
-                os.remove(os.path.join("output", f'{dataset["name"]}.csv'))
-        elif(type(dataset["data"]) is list):
+        with open(os.path.join("output", f'{dataset["name"]}.json'), 'w') as f:
+            json.dump(dataset, f, indent=4, cls=NumpyArrayEncoder)
+    except:
+        pass
+    try:
+        if(type(dataset["data"]) is list):
             for subdataset in dataset["data"]:
-                try:
-                    with open(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'), 'w') as f:
-                            for index_x, x in enumerate(subdataset["axis"][0]):
-                                for index_y, y in enumerate(subdataset["axis"][1]):
-                                    f.write(f'{x}; {y}; {subdataset["data"][index_x][index_y]}\n')
-                except:
-                    os.remove(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'))
+                with open(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'), 'w') as f:
+                    for index_x, x in enumerate(subdataset["axis"][0]):
+                        for index_y, y in enumerate(subdataset["axis"][1]):
+                            f.write(f'{x}; {y}; {subdataset["data"][index_x][index_y]}\n')
     except:
         pass
 
@@ -353,6 +347,17 @@ def apply_gaussian_filtering(dataset, degree="auto", filter_radius=200):
             for j in range(len(dataset[scalar][i])):
                 dataset[scalar][i][j] *= w[i]
     return(dataset)
+
+
+# Classes
+# -----------------------------------------------------------------------------
+
+
+class NumpyArrayEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
     
 
 # Beginning of the Main Programm
