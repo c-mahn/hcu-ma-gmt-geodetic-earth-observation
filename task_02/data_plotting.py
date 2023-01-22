@@ -82,7 +82,7 @@ def plot_sherical_harmonics(file_name="test",
 
 if __name__ == '__main__':
     # Plotting of the EWH
-    plot_sherical_harmonics(file_name="monthly_ewh_filtered_300km_2014-09",
+    plot_sherical_harmonics(file_name="ewh_2009-01_filtered_300km",
                             img_type="png",
                             grid_resolution="0.5",
                             file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
