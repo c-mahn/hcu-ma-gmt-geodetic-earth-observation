@@ -54,7 +54,9 @@ def plot_sherical_harmonics(file_name="test",
         show_plot (bool): If True, the plot is shown. If False, the plot is only saved to a png file.
     """
 
-    
+    command = ""
+    command += f'gmt gmtset FORMAT_GEO_MAP ddd'     # Set the format of the map
+    command += f' && gmt begin {file_name} {img_type}'  # Start the plot
     os.system(f'gmt gmtset FORMAT_GEO_MAP ddd')     # Set the format of the map
     os.system(f'gmt begin {file_name} {img_type}')  # Start the plot
     os.system(f'gmt xyz2grd ./output/{file_name}.csv -R{region} -r -I{grid_resolution} -G -V')           # Convert the ascii file to a grid file
