@@ -139,18 +139,19 @@ def import_data(dataset):
 
 
 def export_data(dataset):
+    """
     try:
         with open(os.path.join("output", f'{dataset["name"]}.json'), 'w') as f:
             json.dump(dataset, f, indent=4, cls=NumpyArrayEncoder)
     except:
         pass
+    """
     try:
         if(type(dataset["data"]) is list):
             for subdataset in dataset["data"]:
-                with open(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'), 'w') as f:
-                    for index_x, x in enumerate(subdataset["axis"][0]):
-                        for index_y, y in enumerate(subdataset["axis"][1]):
-                            f.write(f'{x}; {y}; {subdataset["data"][index_x][index_y]}\n')
+                with open(os.path.join("output", f'{subdataset["name"]}.csv'), 'w') as f:
+                    for index, value in enumerate(subdataset["ewh"]):
+                        f.write(f'{subdataset["lamda"][index]};{subdataset["theta"][index]};{value}\n')
     except:
         pass
 
@@ -292,22 +293,8 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
     # result = calc_EWH(lamda, theta, np.array(dataset["C"]), np.array(dataset["S"]), M, R, rho, k)
     result = fu.calc_EWH_fast(lamda, theta, dataset["C"], dataset["S"], M, R, rho, k)
 
-    # Get the longitudes and colatitudes
-    longitudes = []
-    latitudes = []
-    for pixel in pixels:
-        longitudes.append(float(pixel[0]))
-        latitudes.append(float(pixel[1]))
-    longitudes = sorted(list(set(longitudes)))
-    latitudes = sorted(list(set(latitudes)))
-
-    # Create the result matrix
-    result_matrix = np.zeros((len(latitudes), len(longitudes)))
-    for index, entry in enumerate(result):
-        result_matrix[int(index/len(longitudes))][index%len(longitudes)] = float(entry)
-
     # Create the new dataset and return it
-    new_dataset = {"longitudes": longitudes, "latitudes": latitudes, "data": result_matrix, "area_weights": area_weight}
+    new_dataset = {"lamda": pixels[:, 0], "theta": pixels[:, 1], "ewh": result, "area_weights": area_weight}
     return(new_dataset)
 
 
@@ -455,9 +442,8 @@ if __name__ == '__main__':
     love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
     
     new_dataset = apply_ewh(selected_grace, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
-    main.datasets.append({"name": f'ewh_{selected_date}',
-                          "data": new_dataset["data"],
-                          "axis": [new_dataset["longitudes"], new_dataset["latitudes"]]})
+    new_dataset["name"] = f'ewh_{selected_date}'
+    main.datasets.append(new_dataset)
     del new_dataset  # Remove the temporary variable
     print(f'[Info][Done] Calculating the unfiltered equivalent water height')
 
@@ -470,12 +456,7 @@ if __name__ == '__main__':
     filter_radius = 300  # km
 
     # Create new dataset for the filtered spherical harmonic coefficients
-    print(f'[Info] Creating new dataset for the filtered spherical harmonic coefficients', end="\r")
-    grace_single_filtered = {"name": "gaussian_filter_coefficients"}
-
-    # Filter the selected grace_augmented dataset for the month
     grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
-    
     main.datasets.append({"name": f'grace_{selected_date}_filtered_{filter_radius}km',
                           "data": grace_single_filtered})
     
@@ -484,12 +465,8 @@ if __name__ == '__main__':
     # Create dataset with the ewh for the region of interest (filtered)
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered)', end="\r")
     new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
-    main.datasets.append({"name": f'ewh_{selected_date}_filtered_{filter_radius}km',
-                          "data": new_dataset["data"],
-                          "axis": [new_dataset["longitudes"], new_dataset["latitudes"]]})
-    main.datasets.append({"name": f'area_weights_{selected_date}_filtered_{filter_radius}km',
-                          "data": new_dataset["area_weights"],
-                          "axis": [new_dataset["longitudes"], new_dataset["latitudes"]]})
+    new_dataset["name"] = f'ewh_{selected_date}_filtered_{filter_radius}km'
+    main.datasets.append(new_dataset)
     del new_dataset  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered)')
 
@@ -500,12 +477,8 @@ if __name__ == '__main__':
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
         grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
         new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
-        main.datasets.append({"name": f'ewh_{selected_date}_filtered_{filter_radius}km',
-                              "data": new_dataset["data"],
-                              "axis": [new_dataset["longitudes"], new_dataset["latitudes"]]})
-        main.datasets.append({"name": f'area_weights_{selected_date}_filtered_{filter_radius}km',
-                              "data": new_dataset["area_weights"],
-                              "axis": [new_dataset["longitudes"], new_dataset["latitudes"]]})
+        new_dataset["name"] = f'ewh_{selected_date}_filtered_{filter_radius}km'
+        main.datasets.append(new_dataset)
         del new_dataset  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
 
@@ -521,13 +494,10 @@ if __name__ == '__main__':
         print(f'[Info][{index}/{length}] Computing monthly datasets with the filtered spherical harmonic coefficients "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")
         new_dataset["data"].append(apply_gaussian_filtering(dataset["data"], filter_radius=filter_radius))
         new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
-    
-    print(f'[Info][Done] Computing monthly datasets with the filtered spherical harmonic coefficients with the selected filter radius {filter_radius} km')
-        
-        
-    # Add the new dataset to the main datasets
     main.datasets.append(new_dataset)
-    
+
+    print(f'[Info][Done] Computing monthly datasets with the filtered spherical harmonic coefficients with the selected filter radius {filter_radius} km')
+
     # Delete the temporary variables
     del new_dataset, length, index, dataset
     del filter_radii, grace_single_filtered, selected_grace
@@ -537,26 +507,21 @@ if __name__ == '__main__':
 
     # Computation of a time series of region averages
     # -----------------------------------------------
-
-    # Create new dataset for the monthly solutions of equivalent water height and area weights
-    new_dataset_ehw = {"name": f'monthly_ewh_filtered_{filter_radius}km', "data": []}
-    new_dataset_area_weights = {"name": f'monthly_area_weights_filtered_{filter_radius}km', "data": []}
+    
+    # Create new dataset for the monthly equivalent water height
+    new_dataset = {"name": f'monthly_ewh_filtered_{filter_radius}km', "data": []}
 
     length = len(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"]):
         print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
-        ewh = apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
-        new_dataset_ehw["data"].append({"date": dataset["date"], "data": ewh["data"], "axis": [ewh["longitudes"], ewh["latitudes"]]})
-        new_dataset_area_weights["data"].append({"date": dataset["date"], "data": ewh["area_weights"], "axis": [ewh["longitudes"], ewh["latitudes"]]})
-
-    # Add the new datasets to the main datasets
-    main.datasets.append(new_dataset_ehw)
-    main.datasets.append(new_dataset_area_weights)
+        new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
+        new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
+    main.datasets.append(new_dataset)
     
     print(f'[Info][Done] Computing monthly solutions of equivalent water height with the selected filter radius {filter_radius} km')
 
     # Delete the temporary variables
-    del new_dataset_ehw, new_dataset_area_weights, length, index, dataset, ewh
+    del length, index, dataset
 
 
 
