@@ -32,8 +32,7 @@ def plot_sherical_harmonics(file_name="test",
                             title="No Title",
                             subtitle="No Subtitle",
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
-                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V',
-                            show_plot=False):
+                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'):
     """
     This function plots spherical harmonics using the commandline-tool gmt.
     GMT is a free and open-source command-line tool for plotting and processing
@@ -65,7 +64,7 @@ def plot_sherical_harmonics(file_name="test",
     command += f' && gmt text -F+cBL+t"{subtitle}" -N -D6.65c/-1c'      # Plot the subtitle
     command += f' && gmt text -F+cBL+t"{editors}" -N -D5.15c/-1.5c'     # Plot the editors
     command += f' && gmt colorbar {colorbar_settings}'                  # Plot the colorbar
-    command += f' && gmt end'
+    command += f' && gmt end'                                           # Save the plot                 
 
     os.system(command)
     
@@ -93,5 +92,5 @@ if __name__ == '__main__':
                             title="British Columbia, Canada",
                             subtitle="Equivalent water heights (EWH)",
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
-                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V',
-                            show_plot=True)
+                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                            )
