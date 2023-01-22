@@ -142,27 +142,32 @@ def export_data(dataset):
     try:
         if(type(dataset["data"]) is np.ndarray):
             try:
-                longitudes = dataset["axis"][0]
-                colatitudes = dataset["axis"][1]
-                if(colatitudes[0] - colatitudes[1] == longitudes[0] - longitudes[1]):
-                    spacing = colatitudes[1] - colatitudes[0]
+                with open(os.path.join("output", f'{dataset["name"]}.csv'), 'w') as f:
+                        for index_x, x in enumerate(dataset["axis"][0]):
+                            for index_y, y in enumerate(dataset["axis"][1]):
+                                f.write(f'{x}; {y}; {dataset["data"][index_x][index_y]}\n')
+                """
                 matrix = np.zeros((360, 180))
-                for longitude in range(-180, 180, spacing):
-                    for colatitude in range(0, 180, spacing):
-                        for long_index, long in enumerate(longitudes):
-                            for colat_index, col in enumerate(colatitudes):
-                                if(int(long) == longitude and int(col) == colatitude):
-                                    matrix[longitude][colatitude] = dataset["data"][long_index][colat_index]
+                data = dataset["data"].tolist()
+                for index_x, x in enumerate(data):
+                    for index_y, y in enumerate(x):
+                        x_coord = dataset["axis"][0][index_x]
+                        y_coord = dataset["axis"][1][index_y]
+                        y_coord -= 90
+                        matrix[int(x_coord)][int(y_coord)] = y
                 fu.save_global_grid(matrix, os.path.join("output", f'{dataset["name"]}.nc'))
+                """
             except:
-                try:
-                    with open(os.path.join("output", f'{dataset["name"]}.json'), 'w') as f:
-                        json.dump(dataset, f)
-                except:
-                    os.remove(os.path.join("output", f'{dataset["name"]}.json'))
+                os.remove(os.path.join("output", f'{dataset["name"]}.csv'))
         elif(type(dataset["data"]) is list):
             for subdataset in dataset["data"]:
-                export_data(subdataset)
+                try:
+                    with open(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'), 'w') as f:
+                            for index_x, x in enumerate(subdataset["axis"][0]):
+                                for index_y, y in enumerate(subdataset["axis"][1]):
+                                    f.write(f'{x}; {y}; {subdataset["data"][index_x][index_y]}\n')
+                except:
+                    os.remove(os.path.join("output", f'{dataset["name"]}_{subdataset["date"]}.csv'))
     except:
         pass
 
@@ -515,14 +520,15 @@ if __name__ == '__main__':
     filter_radius = 300  # km
     
     # Create new dataset for the monthly spherical harmonic coefficients
-    new_dataset = {"name": f"grace_augmented_filtered_{filter_radius}km", "data": []}
+    new_dataset = {"name": f'monthly_grace_coefficients_filtered_{filter_radius}km', "data": []}
 
     length = len(main.select_dataset(main.datasets, "name", "grace_augmented")["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", "grace_augmented")["data"]):
-        print(f'[Info][{index}/{length}] Computing monthly solution "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
+        print(f'[Info][{index}/{length}] Computing monthly datasets with the filtered spherical harmonic coefficients "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")
         new_dataset["data"].append(apply_gaussian_filtering(dataset["data"], filter_radius=filter_radius))
+        new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
     
-    print(f'[Info][Done] Computing monthly solution with the selected filter radius {filter_radius} km')
+    print(f'[Info][Done] Computing monthly datasets with the filtered spherical harmonic coefficients with the selected filter radius {filter_radius} km')
         
         
     # Add the new dataset to the main datasets
@@ -539,12 +545,12 @@ if __name__ == '__main__':
     # -----------------------------------------------
 
     # Create new dataset for the monthly solutions of equivalent water height and area weights
-    new_dataset_ehw = {"name": f"monthly_ewh_filtered_{filter_radius}km", "data": []}
-    new_dataset_area_weights = {"name": f"monthly_area_weights_filtered_{filter_radius}km", "data": []}
+    new_dataset_ehw = {"name": f'monthly_ewh_filtered_{filter_radius}km', "data": []}
+    new_dataset_area_weights = {"name": f'monthly_area_weights_filtered_{filter_radius}km', "data": []}
 
-    length = len(main.select_dataset(main.datasets, "name", "grace_augmented_filtered_{filter_radius}km")["data"])  # Just for the progress bar
-    for index, dataset in enumerate(main.select_dataset(main.datasets, "name", "grace_augmented_filtered_{filter_radius}km")["data"]):
-        print(f'[Info][{index}/{length}] Computing monthly solution "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
+    length = len(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"])  # Just for the progress bar
+    for index, dataset in enumerate(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"]):
+        print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
         ewh = apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
         new_dataset_ehw["data"].append({"date": dataset["date"], "data": ewh["data"], "axis": [ewh["longitudes"], ewh["latitudes"]]})
         new_dataset_area_weights["data"].append({"date": dataset["date"], "data": ewh["area_weights"], "axis": [ewh["longitudes"], ewh["latitudes"]]})
@@ -552,6 +558,8 @@ if __name__ == '__main__':
     # Add the new datasets to the main datasets
     main.datasets.append(new_dataset_ehw)
     main.datasets.append(new_dataset_area_weights)
+    
+    print(f'[Info][Done] Computing monthly solutions of equivalent water height with the selected filter radius {filter_radius} km')
 
     # Delete the temporary variables
     del new_dataset_ehw, new_dataset_area_weights, length, index, dataset, ewh
@@ -577,5 +585,6 @@ if __name__ == '__main__':
 
     # Attempt to save all datasets
     
-    for dataset in main.datasets:
+    for index, dataset in enumerate(main.datasets):
+        print(f'[Info][{index}/{len(main.datasets)}] Exporting dataset "{dataset["name"]}"')
         export_data(dataset)
