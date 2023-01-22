@@ -25,7 +25,6 @@ import os
 # from scipy.fft import fft, fftfreq
 # from scipy import signal
 import functions as fu
-import json
 
 # Constants
 # -----------------------------------------------------------------------------
@@ -139,13 +138,6 @@ def import_data(dataset):
 
 
 def export_data(dataset):
-    """
-    try:
-        with open(os.path.join("output", f'{dataset["name"]}.json'), 'w') as f:
-            json.dump(dataset, f, indent=4, cls=NumpyArrayEncoder)
-    except:
-        pass
-    """
     try:
         if(type(dataset["data"]) is list):
             for subdataset in dataset["data"]:
@@ -334,17 +326,6 @@ def apply_gaussian_filtering(dataset, degree="auto", filter_radius=200):
             for j in range(len(dataset[scalar][i])):
                 dataset[scalar][i][j] *= w[i]
     return(dataset)
-
-
-# Classes
-# -----------------------------------------------------------------------------
-
-
-class NumpyArrayEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
     
 
 # Beginning of the Main Programm
