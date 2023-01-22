@@ -146,17 +146,6 @@ def export_data(dataset):
                         for index_x, x in enumerate(dataset["axis"][0]):
                             for index_y, y in enumerate(dataset["axis"][1]):
                                 f.write(f'{x}; {y}; {dataset["data"][index_x][index_y]}\n')
-                """
-                matrix = np.zeros((360, 180))
-                data = dataset["data"].tolist()
-                for index_x, x in enumerate(data):
-                    for index_y, y in enumerate(x):
-                        x_coord = dataset["axis"][0][index_x]
-                        y_coord = dataset["axis"][1][index_y]
-                        y_coord -= 90
-                        matrix[int(x_coord)][int(y_coord)] = y
-                fu.save_global_grid(matrix, os.path.join("output", f'{dataset["name"]}.nc'))
-                """
             except:
                 os.remove(os.path.join("output", f'{dataset["name"]}.csv'))
         elif(type(dataset["data"]) is list):
