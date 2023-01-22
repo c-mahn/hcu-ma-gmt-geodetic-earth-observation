@@ -94,3 +94,30 @@ if __name__ == '__main__':
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
                             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
                             )
+    """
+    plot_sherical_harmonics(file_name="monthly_ewh_2008-04",
+                            img_type="png",
+                            grid_resolution="0.5",
+                            file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                            map_projection="B-130/65/45/65/18c",
+                            region ="-145/-110/45/65",
+                            color_palette="haxby",
+                            title="British Columbia, Canada",
+                            subtitle="Unfiltered equivalent water heights (EWH) 2008-04",
+                            editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                            )
+    
+    plot_sherical_harmonics(file_name="monthly_ewh_filtered_300km_2008-04",
+                            img_type="png",
+                            grid_resolution="0.5",
+                            file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                            map_projection="B-130/65/45/65/18c",
+                            region ="-145/-110/45/65",
+                            color_palette="haxby",
+                            title="British Columbia, Canada",
+                            subtitle="Filtered (R=300 km) equivalent water heights (EWH) 2008-04",
+                            editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                            )
+    """
