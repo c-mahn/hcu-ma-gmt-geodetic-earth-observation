@@ -6,7 +6,7 @@ REM --- furthermore, you have to adjust the spacing of the grid lines
 REM --- and label spacing of the colorbar
 
 REM --- filename of ascii file (without ending) that you want to plot
-set file=test_noGF_Cali_05
+set file=ewh_2008-04
 REM --- grid resolution in geographical degrees
 set grid_res=0.5
 REM --- filename of polygon file that outlines your averaging region
@@ -15,7 +15,7 @@ REM --- map projection (second line is example for Greenland)
 set map_proj=M-120/18c
 REM set map_proj=B-45/75/60/75/18c
 REM --- region
-set region=-129/-111/30/44
+set region=-145/-110/45/65
 REM --- color palette
 set color_palette=haxby
 REM --- map title
@@ -23,9 +23,8 @@ set title=California
 
 REM =============================================================
 REM --- other variables ----
-set ascii_file=%file%.txt
-set grid_file=%file%.grd
-
+set ascii_file=../output/%file%.csv
+set grid_file=../output/%file%.grd
 
 gmt begin %file% png
 
@@ -45,7 +44,7 @@ gmt psxy %file_poly% -W3,red
 gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"%title%" -W1p,80/80/80 -Di -V 
 
 REM --- plot color scale ---
-REM gmt colorbar -Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V 
+gmt colorbar -Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V 
 
 gmt end show
 @echo on

@@ -6,9 +6,9 @@ REM --- furthermore, you have to adjust the spacing of the grid lines
 REM --- and label spacing of the colorbar
 
 REM --- filename of ascii file (without ending) that you want to plot
-set file=ewh_2008-04
+set file=ewh_2008-04_filtered_300km
 REM --- grid resolution in geographical degrees
-set grid_res=0.5
+set grid_res=1
 REM --- filename of polygon file that outlines your averaging region
 set file_poly=../data/region_polygon.txt
 REM --- map projection (second line is example for Greenland)
@@ -25,18 +25,15 @@ REM --- other variables ----
 set ascii_file=../output/%file%.csv
 set grid_file=../output/%file%.grd
 
-
-gmt begin %file% png
-
-echo Map is created ...
 REM --- create grid from given ascii file ---
 gmt xyz2grd %ascii_file% -R%region% -r -I%grid_res% -G%grid_file% -V
 
 REM --- create map ---
 echo Map is created:
+gmt begin %file% png
 
 REM --- create color palette table ---
-REM gmt makecpt -C%color_palette% -T-42/-28/0.001 -Z
+gmt makecpt -C%color_palette% -T-50/50/0.001 -Z
 gmt grd2cpt %grid_file% -C%color_palette% -Z 
 
 REM --- plot grid ---
