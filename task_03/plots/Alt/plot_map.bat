@@ -6,7 +6,10 @@ REM --- furthermore, you have to adjust the spacing of the grid lines
 REM --- and label spacing of the colorbar	
 
 REM --- filename of ascii file (without ending) that you want to plot
-set file=DTU15MDT_2min.mdt
+REM set file=DTU15MDT_2min.mdt
+REM set file=DTU15MDT_30min.mdt
+REM file=DTU15MDT_30min_cut.mdt
+set file=DTU15MDT_30min_cut_pyout.mdt
 REM --- grid resolution in geographical degrees
 set grid_res=30m
 REM --- map projection
@@ -20,14 +23,16 @@ set title=British Columbia, Canada
 
 REM =============================================================
 REM --- other variables ----
-set grid_file=./data/%file%.nc
+set grid_file=../data/%file%.nc
 
 REM --- create map ---
 echo Map is created:
 gmt begin %file% png
 
 REM --- create color palette table ---
-gmt grdsample %grid_file% -G./data/DTU15MDT_30min.mdt.nc -I%grid_res% -R%region%
+REM gmt grdsample %grid_file% -G../data/DTU15MDT_30min.mdt.nc -I%grid_res%
+REM gmt grdcut %grid_file% -G../data/DTU15MDT_30min_cut.mdt.nc -R%region%
+gmt grdinfo %grid_file%
 gmt makecpt -C%color_palette% -T-50/50/0.001 -Z
 gmt grd2cpt %grid_file% -C%color_palette% -Z 
 
