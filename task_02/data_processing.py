@@ -476,16 +476,48 @@ if __name__ == '__main__':
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered)')
 
     # Again, but with different filter radii
-    new_dataset = {"name": f'grace_{selected_date}_filtered_for_different_radii', "data": []}
+    new_dataset = {"name": f'ewh_grace_{selected_date}_filtered_for_different_radii', "data": []}
+    new_dataset_2 = {"name": f'grace_{selected_date}_filtered_for_different_radii', "data": []}
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
     for index, radius_i in enumerate(filter_radii):
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
         grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=radius_i)
         new_dataset["data"].append(apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
         new_dataset["data"][-1]["name"] = f'ewh_{selected_date}_filtered_{radius_i}km'
+        new_dataset_2["data"].append(grace_single_filtered)
+        new_dataset_2["data"][-1]["name"] = f'grace_{selected_date}_filtered_{radius_i}km'
     main.datasets.append(new_dataset)
-    del new_dataset, radius_i  # Remove the temporary variable
+    main.datasets.append(new_dataset_2)
+    del new_dataset, new_dataset_2, radius_i  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
+
+    # Plot signal degree variances
+    datasets = main.select_dataset(main.datasets, "name", f'grace_{selected_date}_filtered_for_different_radii')["data"]
+    graphs = []
+    names = []
+    for dataset in datasets:
+        graph_c = {"x": [], "y": []}
+        graph_s = {"x": [], "y": []}
+        for n, line in enumerate(dataset["C"]):
+            variance_sum_c = 0
+            variance_sum_s = 0
+            for m, entry in enumerate(dataset["C"][n]):
+                variance_sum_c += dataset["C"][n][m]**2
+                variance_sum_s += dataset["S"][n][m]**2
+            graph_c["x"].append(n)
+            graph_c["y"].append(variance_sum_c)
+            graph_s["x"].append(n)
+            graph_s["y"].append(variance_sum_s)
+        graphs.append(graph_c)
+        graphs.append(graph_s)
+        names.append(f'C_{dataset["name"]}')
+        names.append(f'S_{dataset["name"]}')
+    plot_xy(graphs,
+            names=names,
+            title=f'Signal degree variances for different filter radii',
+            axis={"x": "Degree", "y": "Variance"},
+            plot="save")
+    del datasets, graphs, names, graph_c, graph_s, n, line, variance_sum_c, variance_sum_s, m, entry  # Remove the temporary variables
 
     # Computing monthly solutions with a selected filter radius
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
