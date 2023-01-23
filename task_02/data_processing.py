@@ -33,7 +33,7 @@ gravity_constant    = 3.986005000e+14   # m^3 / (kg * s^2)
 normal_gravity      = 9.80665           # m / s^2
 radius              = 6.378137000e+06   # m
 mass                = 5.9722*10**24     # kg
-degree_n            = 96
+degree_n            = 80
 order_m             = degree_n/2                
 rho_grad            = 180/np.pi
 rho_water           = 1000              # kg / m^3  
@@ -493,31 +493,23 @@ if __name__ == '__main__':
 
     # Plot signal degree variances
     datasets = main.select_dataset(main.datasets, "name", f'grace_{selected_date}_filtered_for_different_radii')["data"]
+    coeff_sets = []
+    for radius_i in filter_radii:
+        coeff_sets.append(gaussian_filtering_factors(degree_n, radius_i))
     graphs = []
-    names = []
-    for dataset in datasets:
-        graph_c = {"x": [], "y": []}
-        graph_s = {"x": [], "y": []}
-        for n, line in enumerate(dataset["C"]):
-            variance_sum_c = 0
-            variance_sum_s = 0
-            for m, entry in enumerate(dataset["C"][n]):
-                variance_sum_c += dataset["C"][n][m]**2
-                variance_sum_s += dataset["S"][n][m]**2
-            graph_c["x"].append(n)
-            graph_c["y"].append(variance_sum_c)
-            graph_s["x"].append(n)
-            graph_s["y"].append(variance_sum_s)
-        graphs.append(graph_c)
-        graphs.append(graph_s)
-        names.append(f'C_{dataset["name"]}')
-        names.append(f'S_{dataset["name"]}')
+    for coeffs in coeff_sets:
+        x_values = []
+        y_values = []
+        for index, coeff in enumerate(coeffs):
+            x_values.append(index)
+            y_values.append(float(coeff))
+        graphs.append({"x": x_values, "y": y_values})
     plot_xy(graphs,
-            names=names,
+            names=filter_radii,
             title=f'Signal degree variances for different filter radii',
-            axis={"x": "Degree", "y": "Variance"},
+            axis={"x": "Degree", "y": "Factor"},
             plot="save")
-    del datasets, graphs, names, graph_c, graph_s, n, line, variance_sum_c, variance_sum_s, m, entry  # Remove the temporary variables
+    
 
     # Computing monthly solutions with a selected filter radius
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
