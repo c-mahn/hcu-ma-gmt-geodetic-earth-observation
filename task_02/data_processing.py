@@ -39,6 +39,18 @@ rho_grad            = 180/np.pi
 rho_water           = 1000              # kg / m^3  
 grid_spacing        = 0.5
 
+
+# Other Variables
+# -----------------------------------------------------------------------------
+
+first_year = 2003
+last_year = 2016
+months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+filter_radii = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+filter_radius = 300  # km
+selected_date = "2018"
+
+
 # Functions
 # -----------------------------------------------------------------------------
 
@@ -267,7 +279,7 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
             for latitude in range(-90, 90, spacing):
                 pixels.append([longitude, latitude])
         pixels = np.array(pixels)
-        area_weight = None
+        area_weight = 1
     else:
         # Get the pixels from the given area
         grid = fu.getGridfromPolygon(area, spacing)
@@ -351,62 +363,47 @@ if __name__ == '__main__':
     new_dataset = {"name": "grace_augmented", "data": []}
 
     # Load the static grace observation model and assemble it into matrices
-    itsg_grace_2018 = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")["data"]
-    itsg_grace_2018_matrix_c = assemble_matrix(itsg_grace_2018, value_index="C")
-    itsg_grace_2018_matrix_s = assemble_matrix(itsg_grace_2018, value_index="S")
-    itsg_grace_2018_matrix_sigma_c = assemble_matrix(itsg_grace_2018, value_index="sigma_C")
-    itsg_grace_2018_matrix_sigma_s = assemble_matrix(itsg_grace_2018, value_index="sigma_S")
-    del itsg_grace_2018
+    itsg_grace_static = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")
+    for variable in ["C", "S", "sigma_C", "sigma_S"]:
+        itsg_grace_static[variable] = assemble_matrix(itsg_grace_static["data"], value_index=variable)
 
     length = len(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"])  # Just for the progress bar
     for index, itsg_grace in enumerate(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]):
         print(f'[Info][{index+1}/{length}] Creating augmented grace-dataset ({itsg_grace["date"]})', end="\r")  # Progress bar
-        itsg_grace_dataset = itsg_grace["data"]
-
-        # Assemble monthly grace observations into matrices
-        itsg_grace_matrix_c = assemble_matrix(itsg_grace_dataset, value_index="C")
-        itsg_grace_matrix_s = assemble_matrix(itsg_grace_dataset, value_index="S")
-        itsg_grace_matrix_sigma_c = assemble_matrix(itsg_grace_dataset, value_index="sigma_C")
-        itsg_grace_matrix_sigma_s = assemble_matrix(itsg_grace_dataset, value_index="sigma_S")
-
-        # - static grace model
-        itsg_grace_matrix_c = matrix_math(itsg_grace_matrix_c, itsg_grace_2018_matrix_c, operator="-")
-        itsg_grace_matrix_s = matrix_math(itsg_grace_matrix_s, itsg_grace_2018_matrix_s, operator="-")
-        itsg_grace_matrix_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, itsg_grace_2018_matrix_c, operator="-")
-        itsg_grace_matrix_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, itsg_grace_2018_matrix_s, operator="-")
-
-        # Assemble monthly grace coefficients into matrices
+        new_itsg_grace_dataset = itsg_grace
+        
+        # Load the corresponding deg1 coefficients
         deg1_dataset = []
         for dataset in main.select_dataset(main.datasets, "name", "deg1")["data"]:
             if(dataset["date"] == itsg_grace["date"]):  # Selecting the correct dataset
-                deg1_dataset = dataset["data"]
+                deg1_dataset = dataset
                 break
-        deg1_matrix_c = assemble_matrix(deg1_dataset, value_index="C")
-        deg1_matrix_s = assemble_matrix(deg1_dataset, value_index="S")
-        deg1_matrix_sigma_c = assemble_matrix(deg1_dataset, value_index="sigma_C")
-        deg1_matrix_sigma_s = assemble_matrix(deg1_dataset, value_index="sigma_S")
-
-        # + monthly grace coefficients
-        itsg_grace_matrix_c = matrix_math(itsg_grace_matrix_c, deg1_matrix_c, operator="+")
-        itsg_grace_matrix_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_s, operator="+")
-        itsg_grace_matrix_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, deg1_matrix_sigma_c, operator="+")
-        itsg_grace_matrix_sigma_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_sigma_s, operator="+")
+        
+        for variable in ["C", "S", "sigma_C", "sigma_S"]:
+            # Assemble monthly grace observations into matrices
+            new_itsg_grace_dataset[variable] = assemble_matrix(new_itsg_grace_dataset["data"], value_index=variable)
+            
+            # - static grace model
+            new_itsg_grace_dataset[variable] = matrix_math(new_itsg_grace_dataset[variable], itsg_grace_static[variable], operator="-")
+            
+            # Assemble the deg1 coefficients into matrices
+            deg1_dataset[variable] = assemble_matrix(deg1_dataset["data"], value_index=variable)
+            
+            # + monthly grace coefficients
+            new_itsg_grace_dataset[variable] = matrix_math(new_itsg_grace_dataset[variable], deg1_dataset[variable], operator="+")
 
         # Append the monthly augmented grace dataset
-        new_dataset["data"].append({"date": itsg_grace["date"], "data": {"C": itsg_grace_matrix_c,
-                                                                         "S": itsg_grace_matrix_s,
-                                                                         "sigma_C": itsg_grace_matrix_sigma_c,
-                                                                         "sigma_S": itsg_grace_matrix_sigma_s}})
+        new_dataset["data"].append({"date": itsg_grace["date"], "data": {"C": new_itsg_grace_dataset["C"],
+                                                                         "S": new_itsg_grace_dataset["S"],
+                                                                         "sigma_C": new_itsg_grace_dataset["sigma_C"],
+                                                                         "sigma_S": new_itsg_grace_dataset["sigma_S"]}})
 
     # Append all the datasets to the main datasets
     main.datasets.append(new_dataset)
     print(f'[Info][Done] Creating dataset of the augmented gravity field models')
 
     # Remove the temporary variables
-    del new_dataset
-    del itsg_grace_2018_matrix_c, itsg_grace_2018_matrix_s, itsg_grace_2018_matrix_sigma_c, itsg_grace_2018_matrix_sigma_s
-    del itsg_grace_matrix_c, itsg_grace_matrix_s, itsg_grace_matrix_sigma_c, itsg_grace_matrix_sigma_s
-    del deg1_matrix_c, deg1_matrix_s, deg1_matrix_sigma_c, deg1_matrix_sigma_s
+    del new_dataset, itsg_grace_static, deg1_dataset, new_itsg_grace_dataset
 
     print(f'[Done] Task B')
 
@@ -433,8 +430,6 @@ if __name__ == '__main__':
 
     # Filtering of the spherical harmonic coefficients
     # ------------------------------------------------
-    
-    filter_radius = 300  # km
 
     # Create new dataset for the filtered spherical harmonic coefficients
     grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
@@ -453,7 +448,6 @@ if __name__ == '__main__':
 
     # Again, but with different filter radii
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
-    filter_radii = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
     for index, filter_radius in enumerate(filter_radii):
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
         grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
@@ -464,8 +458,7 @@ if __name__ == '__main__':
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
 
     # Computing monthly solutions with a selected filter radius
-
-    filter_radius = 300  # km
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     # Create new dataset for the monthly spherical harmonic coefficients
     new_dataset = {"name": f'monthly_grace_coefficients_filtered_{filter_radius}km', "data": []}
@@ -481,7 +474,7 @@ if __name__ == '__main__':
 
     # Delete the temporary variables
     del new_dataset, length, index, dataset
-    del filter_radii, grace_single_filtered, selected_grace
+    del grace_single_filtered, selected_grace
 
     print(f'[Done] Task D')
 
@@ -497,26 +490,45 @@ if __name__ == '__main__':
         print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
         new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
         new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
+        new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
+
+        # Apply the area weighting
+        new_dataset["data"][-1]["ewh"] *= new_dataset["data"][-1]["area_weights"]
+
+        # Compute mean
+        new_dataset["data"][-1]["mean"] = np.mean(new_dataset["data"][-1]["ewh"])
+
     main.datasets.append(new_dataset)
     
     print(f'[Info][Done] Computing monthly solutions of equivalent water height with the selected filter radius {filter_radius} km')
 
     # Delete the temporary variables
-    del length, index, dataset
+    del length, index, dataset, new_dataset
 
-
-
-
-
-
-
-
+    print(f'[Done] Task E')
 
 
     # Interpolation of missing GRACE months
     # -----------------------------------------------
 
-    # grace_missing_months = fu.interp_missing_months()
+    # Create new dataset for the collected monthly equivalent water height means
+    new_dataset = {"name": f'collection_of_monthly_ewh_means_f{filter_radius}', "data": []}
+    for dataset in main.select_dataset(main.datasets, "name", f'monthly_ewh_filtered_{filter_radius}km')["data"]:
+        new_dataset["data"].append({"date": dataset["date"], "mean": dataset["mean"]})
+    main.datasets.append(new_dataset)
+    
+    del new_dataset
+    
+    # Interpolate the missing months
+    temp_vector = np.zeros(len(months)*(first_year-last_year+1))
+    for dataset in main.select_dataset(main.datasets, "name", f'collection_of_monthly_ewh_means_f{filter_radius}')["data"]:
+        month = int(dataset["date"].split("-")[1])
+        year = int(dataset["date"].split("-")[0])
+        temp_vector[(year-first_year)*len(months)+month-1] = dataset["mean"]
+    dates, means = fu.interp_missing_months(temp_vector)
+    
+    main.datasets.append({"name": f'interpolated_monthly_ewh_means_f{filter_radius}', "ewh": means, "dates": dates})
+
 
     # Estimation of the linear mass trend
     # -----------------------------------------------
