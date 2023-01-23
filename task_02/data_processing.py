@@ -514,10 +514,10 @@ if __name__ == '__main__':
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"]):
         print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
         new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
-        new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
+        new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km_region_bounding_box'
         new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
         new_dataset_2["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"]))
-        new_dataset_2["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
+        new_dataset_2["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km_region_polygon'
         new_dataset_2["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
 
         # Apply the area weighting
@@ -544,7 +544,7 @@ if __name__ == '__main__':
 
     # Create new dataset for the collected monthly equivalent water height means
     new_dataset = {"name": f'collection_of_monthly_ewh_means_f{filter_radius}', "data": []}
-    for dataset in main.select_dataset(main.datasets, "name", f'monthly_ewh_filtered_{filter_radius}km')["data"]:
+    for dataset in main.select_dataset(main.datasets, "name", f'monthly_ewh_filtered_{filter_radius}km_region_polygon')["data"]:
         new_dataset["data"].append({"date": dataset["date"], "mean": dataset["mean"]})
     main.datasets.append(new_dataset)
 

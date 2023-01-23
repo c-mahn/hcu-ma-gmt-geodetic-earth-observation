@@ -88,7 +88,7 @@ if __name__ == '__main__':
         for month in range(1, 13):
             for filter_radius in filter_radii:
                 try:           
-                    plot_sherical_harmonics(file_name=f"ewh_{year}-{month:02d}_filtered_{filter_radius}km",
+                    plot_sherical_harmonics(file_name=f"ewh_{year}-{month:02d}_filtered_{filter_radius}km_region_bounding_box",
                                             img_type="png",
                                             grid_resolution="0.5",
                                             file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
