@@ -39,6 +39,18 @@ rho_grad            = 180/np.pi
 rho_water           = 1000              # kg / m^3  
 grid_spacing        = 0.5
 
+
+# Other Variables
+# -----------------------------------------------------------------------------
+
+first_year = 2003
+last_year = 2016
+months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+filter_radii = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+filter_radius = 300  # km
+selected_date = "2018"
+
+
 # Functions
 # -----------------------------------------------------------------------------
 
@@ -267,7 +279,7 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
             for latitude in range(-90, 90, spacing):
                 pixels.append([longitude, latitude])
         pixels = np.array(pixels)
-        area_weight = None
+        area_weight = 1
     else:
         # Get the pixels from the given area
         grid = fu.getGridfromPolygon(area, spacing)
@@ -418,8 +430,6 @@ if __name__ == '__main__':
 
     # Filtering of the spherical harmonic coefficients
     # ------------------------------------------------
-    
-    filter_radius = 300  # km
 
     # Create new dataset for the filtered spherical harmonic coefficients
     grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
@@ -438,7 +448,6 @@ if __name__ == '__main__':
 
     # Again, but with different filter radii
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
-    filter_radii = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
     for index, filter_radius in enumerate(filter_radii):
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
         grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
@@ -449,8 +458,7 @@ if __name__ == '__main__':
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
 
     # Computing monthly solutions with a selected filter radius
-
-    filter_radius = 300  # km
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     # Create new dataset for the monthly spherical harmonic coefficients
     new_dataset = {"name": f'monthly_grace_coefficients_filtered_{filter_radius}km', "data": []}
@@ -466,7 +474,7 @@ if __name__ == '__main__':
 
     # Delete the temporary variables
     del new_dataset, length, index, dataset
-    del filter_radii, grace_single_filtered, selected_grace
+    del grace_single_filtered, selected_grace
 
     print(f'[Done] Task D')
 
@@ -482,26 +490,45 @@ if __name__ == '__main__':
         print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
         new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
         new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
+        new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
+
+        # Apply the area weighting
+        new_dataset["data"][-1]["ewh"] *= new_dataset["data"][-1]["area_weights"]
+
+        # Compute mean
+        new_dataset["data"][-1]["mean"] = np.mean(new_dataset["data"][-1]["ewh"])
+
     main.datasets.append(new_dataset)
     
     print(f'[Info][Done] Computing monthly solutions of equivalent water height with the selected filter radius {filter_radius} km')
 
     # Delete the temporary variables
-    del length, index, dataset
+    del length, index, dataset, new_dataset
 
-
-
-
-
-
-
-
+    print(f'[Done] Task E')
 
 
     # Interpolation of missing GRACE months
     # -----------------------------------------------
 
-    # grace_missing_months = fu.interp_missing_months()
+    # Create new dataset for the collected monthly equivalent water height means
+    new_dataset = {"name": f'collection_of_monthly_ewh_means_f{filter_radius}', "data": []}
+    for dataset in main.select_dataset(main.datasets, "name", f'monthly_ewh_filtered_{filter_radius}km')["data"]:
+        new_dataset["data"].append({"date": dataset["date"], "mean": dataset["mean"]})
+    main.datasets.append(new_dataset)
+    
+    del new_dataset
+    
+    # Interpolate the missing months
+    temp_vector = np.zeros(len(months)*(first_year-last_year+1))
+    for dataset in main.select_dataset(main.datasets, "name", f'collection_of_monthly_ewh_means_f{filter_radius}')["data"]:
+        month = int(dataset["date"].split("-")[1])
+        year = int(dataset["date"].split("-")[0])
+        temp_vector[(year-first_year)*len(months)+month-1] = dataset["mean"]
+    dates, means = fu.interp_missing_months(temp_vector)
+    
+    main.datasets.append({"name": f'interpolated_monthly_ewh_means_f{filter_radius}', "ewh": means, "dates": dates})
+
 
     # Estimation of the linear mass trend
     # -----------------------------------------------
