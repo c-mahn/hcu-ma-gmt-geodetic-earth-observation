@@ -156,6 +156,10 @@ def export_data(dataset):
                 with open(os.path.join("output", f'{subdataset["name"]}.csv'), 'w') as f:
                     for index, value in enumerate(subdataset["ewh"]):
                         f.write(f'{subdataset["lamda"][index]};{subdataset["theta"][index]};{value}\n')
+        else:
+            with open(os.path.join("output", f'{dataset["name"]}.csv'), 'w') as f:
+                for index, value in enumerate(dataset["ewh"]):
+                    f.write(f'{dataset["lamda"][index]};{dataset["theta"][index]};{value}\n')
     except:
         pass
 
