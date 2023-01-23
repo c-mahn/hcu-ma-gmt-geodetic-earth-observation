@@ -351,62 +351,47 @@ if __name__ == '__main__':
     new_dataset = {"name": "grace_augmented", "data": []}
 
     # Load the static grace observation model and assemble it into matrices
-    itsg_grace_2018 = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")["data"]
-    itsg_grace_2018_matrix_c = assemble_matrix(itsg_grace_2018, value_index="C")
-    itsg_grace_2018_matrix_s = assemble_matrix(itsg_grace_2018, value_index="S")
-    itsg_grace_2018_matrix_sigma_c = assemble_matrix(itsg_grace_2018, value_index="sigma_C")
-    itsg_grace_2018_matrix_sigma_s = assemble_matrix(itsg_grace_2018, value_index="sigma_S")
-    del itsg_grace_2018
+    itsg_grace_static = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")
+    for variable in ["C", "S", "sigma_C", "sigma_S"]:
+        itsg_grace_static[variable] = assemble_matrix(itsg_grace_static["data"], value_index=variable)
 
     length = len(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"])  # Just for the progress bar
     for index, itsg_grace in enumerate(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]):
         print(f'[Info][{index+1}/{length}] Creating augmented grace-dataset ({itsg_grace["date"]})', end="\r")  # Progress bar
-        itsg_grace_dataset = itsg_grace["data"]
-
-        # Assemble monthly grace observations into matrices
-        itsg_grace_matrix_c = assemble_matrix(itsg_grace_dataset, value_index="C")
-        itsg_grace_matrix_s = assemble_matrix(itsg_grace_dataset, value_index="S")
-        itsg_grace_matrix_sigma_c = assemble_matrix(itsg_grace_dataset, value_index="sigma_C")
-        itsg_grace_matrix_sigma_s = assemble_matrix(itsg_grace_dataset, value_index="sigma_S")
-
-        # - static grace model
-        itsg_grace_matrix_c = matrix_math(itsg_grace_matrix_c, itsg_grace_2018_matrix_c, operator="-")
-        itsg_grace_matrix_s = matrix_math(itsg_grace_matrix_s, itsg_grace_2018_matrix_s, operator="-")
-        itsg_grace_matrix_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, itsg_grace_2018_matrix_c, operator="-")
-        itsg_grace_matrix_sigma_s = matrix_math(itsg_grace_matrix_sigma_s, itsg_grace_2018_matrix_s, operator="-")
-
-        # Assemble monthly grace coefficients into matrices
+        new_itsg_grace_dataset = itsg_grace
+        
+        # Load the corresponding deg1 coefficients
         deg1_dataset = []
         for dataset in main.select_dataset(main.datasets, "name", "deg1")["data"]:
             if(dataset["date"] == itsg_grace["date"]):  # Selecting the correct dataset
-                deg1_dataset = dataset["data"]
+                deg1_dataset = dataset
                 break
-        deg1_matrix_c = assemble_matrix(deg1_dataset, value_index="C")
-        deg1_matrix_s = assemble_matrix(deg1_dataset, value_index="S")
-        deg1_matrix_sigma_c = assemble_matrix(deg1_dataset, value_index="sigma_C")
-        deg1_matrix_sigma_s = assemble_matrix(deg1_dataset, value_index="sigma_S")
-
-        # + monthly grace coefficients
-        itsg_grace_matrix_c = matrix_math(itsg_grace_matrix_c, deg1_matrix_c, operator="+")
-        itsg_grace_matrix_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_s, operator="+")
-        itsg_grace_matrix_sigma_c = matrix_math(itsg_grace_matrix_sigma_c, deg1_matrix_sigma_c, operator="+")
-        itsg_grace_matrix_sigma_s = matrix_math(itsg_grace_matrix_s, deg1_matrix_sigma_s, operator="+")
+        
+        for variable in ["C", "S", "sigma_C", "sigma_S"]:
+            # Assemble monthly grace observations into matrices
+            new_itsg_grace_dataset[variable] = assemble_matrix(new_itsg_grace_dataset["data"], value_index=variable)
+            
+            # - static grace model
+            new_itsg_grace_dataset[variable] = matrix_math(new_itsg_grace_dataset[variable], itsg_grace_static[variable], operator="-")
+            
+            # Assemble the deg1 coefficients into matrices
+            deg1_dataset[variable] = assemble_matrix(deg1_dataset["data"], value_index=variable)
+            
+            # + monthly grace coefficients
+            new_itsg_grace_dataset[variable] = matrix_math(new_itsg_grace_dataset[variable], deg1_dataset[variable], operator="+")
 
         # Append the monthly augmented grace dataset
-        new_dataset["data"].append({"date": itsg_grace["date"], "data": {"C": itsg_grace_matrix_c,
-                                                                         "S": itsg_grace_matrix_s,
-                                                                         "sigma_C": itsg_grace_matrix_sigma_c,
-                                                                         "sigma_S": itsg_grace_matrix_sigma_s}})
+        new_dataset["data"].append({"date": itsg_grace["date"], "data": {"C": new_itsg_grace_dataset["C"],
+                                                                         "S": new_itsg_grace_dataset["S"],
+                                                                         "sigma_C": new_itsg_grace_dataset["sigma_C"],
+                                                                         "sigma_S": new_itsg_grace_dataset["sigma_S"]}})
 
     # Append all the datasets to the main datasets
     main.datasets.append(new_dataset)
     print(f'[Info][Done] Creating dataset of the augmented gravity field models')
 
     # Remove the temporary variables
-    del new_dataset
-    del itsg_grace_2018_matrix_c, itsg_grace_2018_matrix_s, itsg_grace_2018_matrix_sigma_c, itsg_grace_2018_matrix_sigma_s
-    del itsg_grace_matrix_c, itsg_grace_matrix_s, itsg_grace_matrix_sigma_c, itsg_grace_matrix_sigma_s
-    del deg1_matrix_c, deg1_matrix_s, deg1_matrix_sigma_c, deg1_matrix_sigma_s
+    del new_dataset, itsg_grace_static, deg1_dataset, new_itsg_grace_dataset
 
     print(f'[Done] Task B')
 
