@@ -499,7 +499,7 @@ if __name__ == '__main__':
         new_dataset["data"][-1]["mean"] = np.mean(new_dataset["data"][-1]["ewh"])
 
     main.datasets.append(new_dataset)
-    
+
     print(f'[Info][Done] Computing monthly solutions of equivalent water height with the selected filter radius {filter_radius} km')
 
     # Delete the temporary variables
@@ -516,9 +516,10 @@ if __name__ == '__main__':
     for dataset in main.select_dataset(main.datasets, "name", f'monthly_ewh_filtered_{filter_radius}km')["data"]:
         new_dataset["data"].append({"date": dataset["date"], "mean": dataset["mean"]})
     main.datasets.append(new_dataset)
-    
+
+    # Delete the temporary variables
     del new_dataset
-    
+
     # Interpolate the missing months
     temp_vector = np.zeros(len(months)*(first_year-last_year+1))
     for dataset in main.select_dataset(main.datasets, "name", f'collection_of_monthly_ewh_means_f{filter_radius}')["data"]:
@@ -526,9 +527,11 @@ if __name__ == '__main__':
         year = int(dataset["date"].split("-")[0])
         temp_vector[(year-first_year)*len(months)+month-1] = dataset["mean"]
     dates, means = fu.interp_missing_months(temp_vector)
-    
+
     main.datasets.append({"name": f'interpolated_monthly_ewh_means_f{filter_radius}', "ewh": means, "dates": dates})
 
+    # Delete the temporary variables
+    del temp_vector, dates, means
 
     # Estimation of the linear mass trend
     # -----------------------------------------------
