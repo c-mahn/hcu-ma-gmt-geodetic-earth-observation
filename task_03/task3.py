@@ -26,7 +26,7 @@ import functions as fu
 g                   = 9.807                 # Gravitational acceleration [m/s^2]
 omega               = (2*np.pi)/(24*60*60)  # Rotational velocity of the Earth
 radius              = 6.378137000e+06       # m
-rho_grad            = np.pi/180             # kg/m^3
+rho_grad            = 180/np.pi             # Conversion factor from radians to degrees
 
 # Functions
 # -----------------------------------------------------------------------------
@@ -114,9 +114,12 @@ def run_gmt(input_file_name="test_input",
 def calc_velocity(mdt, lon, lat, grid_spacing=0.5):
     u = np.zeros((len(lat), len(lon)))
     v = np.zeros((len(lat), len(lon)))
+    grid_spacing /= rho_grad
     for index_phi, phi in enumerate(lat):
+        phi /= rho_grad
         f = 2*omega*np.sin(phi)
         for index_lam, lam in enumerate(lon):
+            lam /= rho_grad
             if index_lam == 0:
                 continue
             elif index_lam == len(lon)-1:
@@ -126,8 +129,8 @@ def calc_velocity(mdt, lon, lat, grid_spacing=0.5):
             elif index_phi == len(lat)-1:
                 continue
             else:
-                dx = radius * np.cos(phi)*(grid_spacing*rho_grad)
-                dy = radius * (grid_spacing*rho_grad)
+                dx = radius * np.cos(phi)*grid_spacing
+                dy = radius * grid_spacing
                 dhx = mdt[index_phi][index_lam + 1] - mdt[index_phi][index_lam - 1]
                 dhy = mdt[index_phi + 1][index_lam] - mdt[index_phi - 1][index_lam]
                 u[index_phi][index_lam] = -(g/f)*(dhy/(2*dy))
