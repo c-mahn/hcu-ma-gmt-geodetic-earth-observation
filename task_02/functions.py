@@ -243,9 +243,9 @@ def interp_missing_months(values):
     values_interp = np.zeros(t_all)
     k = 0
     for i in range(t_all):
-        print(i)
+        # print(i)
         if np.any((yr[i]==yr_miss) * (mn[i]==mn_miss)):
-            print('interpolated')
+            # print('interpolated')
             mean_val = np.mean(values[k:k+1])
             values_interp[i] = mean_val
         else:

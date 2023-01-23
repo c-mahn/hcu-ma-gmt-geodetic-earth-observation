@@ -48,7 +48,7 @@ last_year = 2016
 months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
 filter_radii = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
 filter_radius = 300  # km
-selected_date = "2018"
+selected_date = "2008-04"  # April 2008
 
 
 # Functions
@@ -338,7 +338,32 @@ def apply_gaussian_filtering(dataset, degree="auto", filter_radius=200):
             for j in range(len(dataset[scalar][i])):
                 dataset[scalar][i][j] *= w[i]
     return(dataset)
+
+
+def plot_xy(graphs=[{"x": [0, 1], "y": [0, 1]}], names=["measurement"], title="automatic", plot="show", axis={"x": "x", "y": "y"}):
+    """
+    This function is used to plot graphs in the x-y-plane.
     
+    Args:
+        graphs (list): List of graphs to plot. Defaults to [{"x": [0, 1], "y": [0, 1]}] as an example.
+        names (list, optional): List of names for the graphs. Defaults to ["measurement"].
+        title (str, optional): Title of the plot. Defaults to "automatic". When set to "automatic" the title will be the same as the first name.
+        plot (str, optional): Defines if the plot should be shown or saved. Defaults to "show".
+    """
+    if(title == "automatic"):
+        title = names[0]
+    for graph in graphs:
+        plt.plot(graph["x"], graph["y"])
+    plt.legend(names)
+    plt.grid()
+    plt.xlabel(axis["x"])
+    plt.ylabel(axis["y"])
+    plt.title(title)
+    if(plot == "show"):
+        plt.show()
+    elif(plot == "save"):
+        plt.savefig(title + ".png")
+
 
 # Beginning of the Main Programm
 # -----------------------------------------------------------------------------
@@ -412,8 +437,6 @@ if __name__ == '__main__':
     # ------------------------------------------------
     
     print(f'[Info] Calculating the unfiltered equivalent water height', end="\r")
-    
-    selected_date = "2008-04"  # April 2008
     selected_grace = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", selected_date)["data"]
 
     # Loading the love numbers
@@ -448,13 +471,13 @@ if __name__ == '__main__':
 
     # Again, but with different filter radii
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
-    for index, filter_radius in enumerate(filter_radii):
+    for index, radius_i in enumerate(filter_radii):
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
-        grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
+        grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=radius_i)
         new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
-        new_dataset["name"] = f'ewh_{selected_date}_filtered_{filter_radius}km'
+        new_dataset["name"] = f'ewh_{selected_date}_filtered_{radius_i}km'
         main.datasets.append(new_dataset)
-        del new_dataset  # Remove the temporary variable
+    del new_dataset, radius_i  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
 
     # Computing monthly solutions with a selected filter radius
@@ -521,7 +544,7 @@ if __name__ == '__main__':
     del new_dataset
 
     # Interpolate the missing months
-    temp_vector = np.zeros(len(months)*(first_year-last_year+1))
+    temp_vector = np.zeros(len(months)*(last_year-first_year+1))
     for dataset in main.select_dataset(main.datasets, "name", f'collection_of_monthly_ewh_means_f{filter_radius}')["data"]:
         month = int(dataset["date"].split("-")[1])
         year = int(dataset["date"].split("-")[0])
@@ -532,14 +555,51 @@ if __name__ == '__main__':
 
     # Delete the temporary variables
     del temp_vector, dates, means
+    
+    # Plot the interpolated monthly means
+    dataset = main.select_dataset(main.datasets, "name", f'interpolated_monthly_ewh_means_f{filter_radius}')
+    graph = {"x": [], "y": []}
+    for index, date in enumerate(dataset["dates"]):
+        graph["x"].append(float(date))
+        graph["y"].append(float(dataset["ewh"][index]))
+    main.datasets.append({"name": f'plot_interpolated_monthly_ewh_means_f{filter_radius}', "data": graph})
+    plot_xy([graph],
+            names=["Interpolated monthly means"],
+            title=f'Interpolated monthly means of the equivalent water height with a filter radius of {filter_radius} km',
+            axis={"x": "Time [years]", "y": "Equivalent water height [m]"},
+            plot="save")
+    del graph, dataset
+
+    print(f'[Done] Task F')
+
 
     # Estimation of the linear mass trend
     # -----------------------------------------------
 
+    # Calculate the linear trend
+    timeseries = main.select_dataset(main.datasets, "name", f'plot_interpolated_monthly_ewh_means_f{filter_radius}')["data"]["y"]
+    time = main.select_dataset(main.datasets, "name", f'plot_interpolated_monthly_ewh_means_f{filter_radius}')["data"]["x"]
+    timeseries = np.array(timeseries)
+    time = np.array(time)
+    slope = (len(timeseries) * np.sum(time*timeseries) - np.sum(time) * np.sum(timeseries)) / (len(time)*np.sum(time*time) - np.sum(time) ** 2)
 
+    print(f'[Info] The linear trend of the equivalent water height is {slope} m/yr')
+
+    # Convert to gigatonnes per year
+    gigatonnes = slope * mass * rho_water / 1e9
+
+    print(f'[Info] The linear trend of the equivalent water height is {gigatonnes} Gt/yr')
+
+    # Delete the temporary variables
+    del timeseries, time, slope, gigatonnes
+
+    print(f'[Done] Task G')
+
+
+    # Post-processing
+    # -----------------------------------------------
 
     # Attempt to save all datasets
-    
     for index, dataset in enumerate(main.datasets):
-        print(f'[Info][{index}/{len(main.datasets)}] Exporting dataset "{dataset["name"]}"')
+        print(f'[Info][{index+1}/{len(main.datasets)}] Exporting dataset "{dataset["name"]}"')
         export_data(dataset)
