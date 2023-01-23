@@ -507,27 +507,34 @@ if __name__ == '__main__':
     # -----------------------------------------------
     
     # Create new dataset for the monthly equivalent water height
-    new_dataset = {"name": f'monthly_ewh_filtered_{filter_radius}km', "data": []}
+    new_dataset = {"name": f'monthly_ewh_filtered_{filter_radius}km_region_bounding_box', "data": []}
+    new_dataset_2 = {"name": f'monthly_ewh_filtered_{filter_radius}km_region_polygon', "data": []}
 
     length = len(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"]):
         print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
-        new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"]))
+        new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
         new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
         new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
+        new_dataset_2["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"]))
+        new_dataset_2["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
+        new_dataset_2["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
 
         # Apply the area weighting
         new_dataset["data"][-1]["ewh"] *= new_dataset["data"][-1]["area_weights"]
+        new_dataset_2["data"][-1]["ewh"] *= new_dataset_2["data"][-1]["area_weights"]
 
         # Compute mean
         new_dataset["data"][-1]["mean"] = np.mean(new_dataset["data"][-1]["ewh"])
+        new_dataset_2["data"][-1]["mean"] = np.mean(new_dataset_2["data"][-1]["ewh"])
 
     main.datasets.append(new_dataset)
+    main.datasets.append(new_dataset_2)
 
     print(f'[Info][Done] Computing monthly solutions of equivalent water height with the selected filter radius {filter_radius} km')
 
     # Delete the temporary variables
-    del length, index, dataset, new_dataset
+    del length, index, dataset, new_dataset, new_dataset_2
 
     print(f'[Done] Task E')
 
