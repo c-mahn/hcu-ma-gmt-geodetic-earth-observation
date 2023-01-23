@@ -61,8 +61,8 @@ def plot_sherical_harmonics(file_name="test",
     command += f' && gmt grdimage -J{map_projection} -R{region} ./output/{file_name}.grd -Q'                                # Plot the grid file
     command += f' && gmt psxy {file_poly} -R{region} -W3,red'                                                               # Plot region polygon
     command += f' && gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"{title}" -W0.25p,80/80/80 -Df -N1/1.25p,black -V'                   # Plot the coastline and the title
-    command += f' && gmt text -F+cBL+t"{subtitle}" -N -D6.65c/-1c'      # Plot the subtitle
-    command += f' && gmt text -F+cBL+t"{editors}" -N -D5.15c/-1.5c'     # Plot the editors
+    command += f' && gmt text -F+cBL+t"{subtitle}" -N -D0c/-1c'      # Plot the subtitle
+    command += f' && gmt text -F+cBL+t"{editors}" -N -D0c/-1.5c'     # Plot the editors
     command += f' && gmt colorbar {colorbar_settings}'                  # Plot the colorbar
     command += f' && gmt end'                                           # Save the plot                 
 
@@ -82,28 +82,43 @@ def plot_sherical_harmonics(file_name="test",
 
 if __name__ == '__main__':
     # Plotting of the EWH
-    filter_radii = [50, 100, 150, 200, 250]
-
-    for year in range(2005, 2009):
-        for month in range(1, 13):
+    filter_radii = filter_radii = [100, 250, 500, 750]
+    """
+    for year in range(2008, 2009):
+        for month in range(1, 5):
+            try:           
+                plot_sherical_harmonics(file_name=f"ewh_{year}-{month:02d}_filtered_500km_region_bounding_box",
+                                        img_type="png",
+                                        grid_resolution="1",
+                                        file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                                        map_projection="B-40/70/45/65/18c", # "B-130/65/45/65/18c",
+                                        region ="-60/-20/55/85", # "-145/-110/45/65",
+                                        color_palette="haxby",
+                                        title="groenland", # "British Columbia, Canada",
+                                        subtitle=f"Equivalent water heights (EWH) - {year}-{month:02d}, Filterradius:{filter_radius}km",
+                                        editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                                        colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                                        )
+            except:
+                pass
             for filter_radius in filter_radii:
                 try:           
-                    plot_sherical_harmonics(file_name=f"ewh_{year}-{month:02d}_filtered_{filter_radius}km_region_bounding_box",
+                    plot_sherical_harmonics(file_name=f"ewh_{year}-{month:02d}_filtered_{filter_radius}km",
                                             img_type="png",
-                                            grid_resolution="0.5",
+                                            grid_resolution="1",
                                             file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
-                                            map_projection="B-130/65/45/65/18c",
-                                            region ="-145/-110/45/65",
+                                            map_projection="B-40/70/45/65/18c", # "B-130/65/45/65/18c",
+                                            region ="-60/-20/55/85", # "-145/-110/45/65",
                                             color_palette="haxby",
-                                            title="British Columbia, Canada",
-                                            subtitle="Equivalent water heights (EWH)",
+                                            title="groenland", # "British Columbia, Canada",
+                                            subtitle=f"Equivalent water heights (EWH) - {year}-{month:02d}, Filterradius:{filter_radius}km",
                                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
                                             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
                                             )
                 except:
                     pass
     """
-    plot_sherical_harmonics(file_name="monthly_ewh_2008-04",
+    plot_sherical_harmonics(file_name="ewh_2008-04",
                             img_type="png",
                             grid_resolution="0.5",
                             file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
@@ -115,7 +130,22 @@ if __name__ == '__main__':
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
                             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
                             )
-    
+    for filter_radius in filter_radii:
+        plot_sherical_harmonics(file_name=f"ewh_2008-04_filtered_{filter_radius}km",
+                                img_type="png",
+                                grid_resolution="0.5",
+                                file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                                map_projection="B-130/65/45/65/18c",
+                                region ="-145/-110/45/65",
+                                color_palette="haxby",
+                                title="British Columbia, Canada",
+                                subtitle=f"Gauss-filtered equivalent water heights (EWH) 2008-04, r={filter_radius} km",
+                                editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                                colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                                )
+
+
+    """
     plot_sherical_harmonics(file_name="monthly_ewh_filtered_300km_2008-04",
                             img_type="png",
                             grid_resolution="0.5",

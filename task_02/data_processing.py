@@ -34,7 +34,7 @@ normal_gravity      = 9.80665           # m / s^2
 radius              = 6.378137000e+06   # m
 mass                = 5.9722*10**24     # kg
 degree_n            = 96
-order_m             = 20                
+order_m             = degree_n/2                
 rho_grad            = 180/np.pi
 rho_water           = 1000              # kg / m^3  
 grid_spacing        = 0.5
@@ -46,8 +46,8 @@ grid_spacing        = 0.5
 first_year = 2003
 last_year = 2016
 months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
-filter_radii = [50, 100, 150, 200, 250]
-filter_radius = 100  # km
+filter_radii = [100, 250, 500, 750]
+filter_radius = 500  # km
 selected_date = "2008-04"  # April 2008
 
 
@@ -75,7 +75,7 @@ def import_gfc(filename):
         else:
             line = line.split(" ")
             line = list(filter(None, line))  # Remove empty strings
-            if(line[0] == "gfc"):            
+            if(line[0] == "gfc" and int(line[1]) <=degree_n):            
                 # Read the data
                 line = {"L": int(line[1]),
                         "M": int(line[2]),
@@ -156,10 +156,12 @@ def export_data(dataset):
                 with open(os.path.join("output", f'{subdataset["name"]}.csv'), 'w') as f:
                     for index, value in enumerate(subdataset["ewh"]):
                         f.write(f'{subdataset["lamda"][index]};{subdataset["theta"][index]};{value}\n')
-        else:
-            with open(os.path.join("output", f'{dataset["name"]}.csv'), 'w') as f:
-                for index, value in enumerate(dataset["ewh"]):
-                    f.write(f'{dataset["lamda"][index]};{dataset["theta"][index]};{value}\n')
+    except:
+        pass
+    try:
+        with open(os.path.join("output", f'{dataset["name"]}.csv'), 'w') as f:
+            for index, value in enumerate(dataset["ewh"]):
+                f.write(f'{dataset["lamda"][index]};{dataset["theta"][index]};{value}\n')
     except:
         pass
 
@@ -327,7 +329,7 @@ def gaussian_filtering_factors(degree, filter_radius=200):
 
 def apply_gaussian_filtering(dataset, degree="auto", filter_radius=200):
     """
-    This function is used to apply the gaussian filtering a dataset.
+    This function is used to apply the gaussian filtering to a dataset.
 
     Args:
         dataset (dict): Dataset containing the coefficients.
@@ -338,9 +340,9 @@ def apply_gaussian_filtering(dataset, degree="auto", filter_radius=200):
         if(degree == "auto"):
             degree = np.shape(dataset[scalar])[0]
         w = gaussian_filtering_factors(degree, filter_radius)
-        for i in range(len(dataset[scalar])):
-            for j in range(len(dataset[scalar][i])):
-                dataset[scalar][i][j] *= w[i]
+        for n in range(len(dataset[scalar])):
+            for m in range(len(dataset[scalar][n])):
+                dataset[scalar][n][m] *= w[n]
     return(dataset)
 
 
