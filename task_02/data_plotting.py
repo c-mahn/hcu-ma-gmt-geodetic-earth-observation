@@ -82,18 +82,23 @@ def plot_sherical_harmonics(file_name="test",
 
 if __name__ == '__main__':
     # Plotting of the EWH
-    plot_sherical_harmonics(file_name="ewh_2009-01_filtered_300km",
-                            img_type="png",
-                            grid_resolution="0.5",
-                            file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
-                            map_projection="B-130/65/45/65/18c",
-                            region ="-145/-110/45/65",
-                            color_palette="haxby",
-                            title="British Columbia, Canada",
-                            subtitle="Equivalent water heights (EWH)",
-                            editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
-                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
-                            )
+    for year in range(2014, 2016):
+        for month in range(1, 13):
+            try:           
+                plot_sherical_harmonics(file_name=f"ewh_{year}-{month:02d}_filtered_300km",
+                                        img_type="png",
+                                        grid_resolution="0.5",
+                                        file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                                        map_projection="B-130/65/45/65/18c",
+                                        region ="-145/-110/45/65",
+                                        color_palette="haxby",
+                                        title="British Columbia, Canada",
+                                        subtitle="Equivalent water heights (EWH)",
+                                        editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                                        colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                                        )
+            except:
+                pass
     """
     plot_sherical_harmonics(file_name="monthly_ewh_2008-04",
                             img_type="png",

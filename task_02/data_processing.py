@@ -288,7 +288,7 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
 
     # Create the vectors for the coordinates
     lamda = np.radians(pixels[:, 0])
-    theta = np.radians(pixels[:, 1]+90)
+    theta = np.radians(pixels[:, 1])    # +90?
 
     # Cut the k vector to the same length as the cnm and snm
     k = k[0:np.shape(dataset["C"])[0]]  # Needed for the fast version (in the slow version the other values are ignored)
@@ -442,7 +442,7 @@ if __name__ == '__main__':
     # Loading the love numbers
     love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
     
-    new_dataset = apply_ewh(selected_grace, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+    new_dataset = apply_ewh(selected_grace, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"])
     new_dataset["name"] = f'ewh_{selected_date}'
     main.datasets.append(new_dataset)
     del new_dataset  # Remove the temporary variable
@@ -463,7 +463,7 @@ if __name__ == '__main__':
     
     # Create dataset with the ewh for the region of interest (filtered)
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered)', end="\r")
-    new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+    new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"])
     new_dataset["name"] = f'ewh_{selected_date}_filtered_{filter_radius}km'
     main.datasets.append(new_dataset)
     del new_dataset  # Remove the temporary variable
@@ -474,7 +474,7 @@ if __name__ == '__main__':
     for index, radius_i in enumerate(filter_radii):
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
         grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=radius_i)
-        new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+        new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"])
         new_dataset["name"] = f'ewh_{selected_date}_filtered_{radius_i}km'
         main.datasets.append(new_dataset)
     del new_dataset, radius_i  # Remove the temporary variable
@@ -511,7 +511,7 @@ if __name__ == '__main__':
     length = len(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"]):
         print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
-        new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
+        new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"]))
         new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km'
         new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
 
