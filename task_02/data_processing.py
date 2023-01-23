@@ -470,13 +470,14 @@ if __name__ == '__main__':
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered)')
 
     # Again, but with different filter radii
+    new_dataset = {"name": f'grace_{selected_date}_filtered_for_different_radii', "data": []}
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
     for index, radius_i in enumerate(filter_radii):
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
         grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=radius_i)
-        new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"])
-        new_dataset["name"] = f'ewh_{selected_date}_filtered_{radius_i}km'
-        main.datasets.append(new_dataset)
+        new_dataset["data"].append(apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"]))
+        new_dataset["data"][-1]["name"] = f'ewh_{selected_date}_filtered_{radius_i}km'
+    main.datasets.append(new_dataset)
     del new_dataset, radius_i  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
 
