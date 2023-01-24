@@ -53,20 +53,21 @@ def plot_sherical_harmonics(file_name="test",
         show_plot (bool): If True, the plot is shown. If False, the plot is only saved to a png file.
     """
 
-    command = ""
-    command += f'gmt gmtset FORMAT_GEO_MAP ddd'             # Set the format of the map
-    command += f' && gmt begin {file_name} {img_type}'      # Start the plot
+    command = ""                                                                                                            # Initialize the command
+        	
+    command += f'gmt gmtset FORMAT_GEO_MAP ddd'                                                                             # Set the format of the map
+    command += f' && gmt begin {file_name} {img_type}'                                                                      # Start the plot
     command += f' && gmt xyz2grd ./output/{file_name}.csv -R{region} -r -I{grid_resolution} -G./output/{file_name}.grd -V'  # Convert the ascii file to a grid file
     command += f' && gmt grd2cpt ./output/{file_name}.grd -C{color_palette} -Z'                                             # Create the color palette for the grid file
     command += f' && gmt grdimage -J{map_projection} -R{region} ./output/{file_name}.grd -Q'                                # Plot the grid file
     command += f' && gmt psxy {file_poly} -R{region} -W3,red'                                                               # Plot region polygon
     command += f' && gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"{title}" -W0.25p,80/80/80 -Df -N1/1.25p,black -V'                   # Plot the coastline and the title
-    command += f' && gmt text -F+cBL+t"{subtitle}" -N -D0c/-1c'      # Plot the subtitle
-    command += f' && gmt text -F+cBL+t"{editors}" -N -D0c/-1.5c'     # Plot the editors
-    command += f' && gmt colorbar {colorbar_settings}'                  # Plot the colorbar
-    command += f' && gmt end'                                           # Save the plot                 
+    command += f' && gmt text -F+cBL+t"{subtitle}" -N -D0c/-1c'                                                             # Plot the subtitle
+    command += f' && gmt text -F+cBL+t"{editors}" -N -D0c/-1.5c'                                                            # Plot the editors
+    command += f' && gmt colorbar {colorbar_settings}'                                                                      # Plot the colorbar
+    command += f' && gmt end'                                                                                               # Save the plot                 
 
-    os.system(command)
+    os.system(command)                                                                                                      # Execute the command
     
     # Move file to the plots folder
     shutil.move(os.path.join(f'{file_name}.{img_type}'), os.path.join('plots', f'{file_name}.{img_type}'))
@@ -84,8 +85,8 @@ if __name__ == '__main__':
     # Plotting of the EWH
     filter_radii = filter_radii = [100, 250, 500, 750]
     """
-    for year in range(2008, 2009):
-        for month in range(1, 5):
+    for year in range(2003, 2016):
+        for month in range(1, 13):
             try:           
                 plot_sherical_harmonics(file_name=f"ewh_{year}-{month:02d}_filtered_500km_region_bounding_box",
                                         img_type="png",
@@ -118,6 +119,8 @@ if __name__ == '__main__':
                 except:
                     pass
     """
+
+    # Plot the unfiltered EWH
     plot_sherical_harmonics(file_name="ewh_2008-04",
                             img_type="png",
                             grid_resolution="0.5",
@@ -130,6 +133,8 @@ if __name__ == '__main__':
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
                             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
                             )
+    
+    # Plot the filtered EWH for the different filter radii
     for filter_radius in filter_radii:
         plot_sherical_harmonics(file_name=f"ewh_2008-04_filtered_{filter_radius}km",
                                 img_type="png",

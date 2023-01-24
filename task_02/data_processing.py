@@ -346,7 +346,7 @@ def apply_gaussian_filtering(dataset, degree="auto", filter_radius=200):
     return(dataset)
 
 
-def plot_xy(graphs=[{"x": [0, 1], "y": [0, 1]}], names=["measurement"], title="automatic", plot="show", axis={"x": "x", "y": "y"}):
+def plot_xy(diagrams, names=["measurement"], title="automatic", plot="show", axis={"x": "x", "y": "y"}):
     """
     This function is used to plot graphs in the x-y-plane.
     
@@ -358,8 +358,8 @@ def plot_xy(graphs=[{"x": [0, 1], "y": [0, 1]}], names=["measurement"], title="a
     """
     if(title == "automatic"):
         title = names[0]
-    for graph in graphs:
-        plt.plot(graph["x"], graph["y"])
+    for item in diagrams:
+        plt.plot(item["x"], item["y"])
     plt.legend(names)
     plt.grid()
     plt.xlabel(axis["x"])
@@ -369,7 +369,7 @@ def plot_xy(graphs=[{"x": [0, 1], "y": [0, 1]}], names=["measurement"], title="a
         plt.show()
     elif(plot == "save"):
         plt.savefig(title + ".png")
-
+    plt.cla()
 
 # Beginning of the Main Programm
 # -----------------------------------------------------------------------------
@@ -496,6 +496,7 @@ if __name__ == '__main__':
     coeff_sets = []
     for radius_i in filter_radii:
         coeff_sets.append(gaussian_filtering_factors(degree_n, radius_i))
+
     graphs = []
     for coeffs in coeff_sets:
         x_values = []
@@ -504,12 +505,14 @@ if __name__ == '__main__':
             x_values.append(index)
             y_values.append(float(coeff))
         graphs.append({"x": x_values, "y": y_values})
-    plot_xy(graphs=graphs,
+
+    plot_xy(graphs,
             names=filter_radii,
             title=f'Signal degree variances for different filter radii',
             axis={"x": "Degree", "y": "Factor"},
             plot="save")
-    del datasets, coeff_sets, graphs, x_values, y_values, coeffs, coeff, index, radius_i  # Remove the temporary variable
+
+    del datasets, coeff_sets, index, radius_i, graphs, x_values, y_values, coeffs, coeff  # Remove the temporary variable
 
     # Computing monthly solutions with a selected filter radius
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -582,18 +585,23 @@ if __name__ == '__main__':
     del new_dataset
 
     # Interpolate the missing months
-    temp_vector = np.zeros(len(months)*(last_year-first_year+1))
+    temp_vector = np.zeros(len(months)*(last_year-first_year+1))*np.nan
+    graph_means = {"x": [], "y": []}
     for dataset in main.select_dataset(main.datasets, "name", f'collection_of_monthly_ewh_means_f{filter_radius}')["data"]:
         month = int(dataset["date"].split("-")[1])
         year = int(dataset["date"].split("-")[0])
         temp_vector[(year-first_year)*len(months)+month-1] = dataset["mean"]
-    dates, means = fu.interp_missing_months(temp_vector)
-    graph = {"x": [], "y": []}
-    graph["y"] = temp_vector.tolist()
-    for year in range(first_year, last_year+1):
-        for month in range(1, 13):
-            graph["x"].append(year+(month/12))
-    plot_xy(graphs=[graph],
+    temp_vector_2 = []
+    for year in range(last_year-first_year+1):
+        for month in range(len(months)):
+            if (temp_vector[year*len(months)+month] is not np.nan):
+                temp_vector_2.append(float(temp_vector[year*len(months)+month]))
+    dates, means = fu.interp_missing_months(np.array(temp_vector))
+    graph_means["y"] = temp_vector
+    for year in range(last_year-first_year+1):
+        for month in range(len(months)):
+            graph_means["x"].append(year+(month/12)+first_year)
+    plot_xy([graph_means],
             names=["Monthly means"],
             title=f'Monthly means of the equivalent water height with a filter radius of {filter_radius} km',
             axis={"x": "Time [years]", "y": "Equivalent water height [m]"},
@@ -602,21 +610,22 @@ if __name__ == '__main__':
     main.datasets.append({"name": f'interpolated_monthly_ewh_means_f{filter_radius}', "ewh": means, "dates": dates})
 
     # Delete the temporary variables
-    del temp_vector, dates, means, graph
+    del temp_vector, dates, means, graph_means
     
     # Plot the interpolated monthly means
     dataset = main.select_dataset(main.datasets, "name", f'interpolated_monthly_ewh_means_f{filter_radius}')
-    graph = {"x": [], "y": []}
+    graph_int_means = {"x": [], "y": []}
     for index, date in enumerate(dataset["dates"]):
-        graph["x"].append(float(date))
-        graph["y"].append(float(dataset["ewh"][index]))
-    main.datasets.append({"name": f'plot_interpolated_monthly_ewh_means_f{filter_radius}', "data": graph})
-    plot_xy(graphs=[graph],
+        if(dataset["ewh"][index] is not np.nan):
+            graph_int_means["x"].append(float(date))
+            graph_int_means["y"].append(float(dataset["ewh"][index]))
+    main.datasets.append({"name": f'plot_interpolated_monthly_ewh_means_f{filter_radius}', "data": graph_int_means})
+    plot_xy([graph_int_means],
             names=["Interpolated monthly means"],
             title=f'Interpolated monthly means of the equivalent water height with a filter radius of {filter_radius} km',
             axis={"x": "Time [years]", "y": "Equivalent water height [m]"},
             plot="save")
-    del graph, dataset
+    del graph_int_means, dataset
 
     print(f'[Done] Task F')
 
