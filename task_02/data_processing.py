@@ -504,12 +504,12 @@ if __name__ == '__main__':
             x_values.append(index)
             y_values.append(float(coeff))
         graphs.append({"x": x_values, "y": y_values})
-    plot_xy(graphs,
+    plot_xy(graphs=graphs,
             names=filter_radii,
             title=f'Signal degree variances for different filter radii',
             axis={"x": "Degree", "y": "Factor"},
             plot="save")
-    
+    del datasets, coeff_sets, graphs, x_values, y_values, coeffs, coeff, index, radius_i  # Remove the temporary variable
 
     # Computing monthly solutions with a selected filter radius
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -588,11 +588,21 @@ if __name__ == '__main__':
         year = int(dataset["date"].split("-")[0])
         temp_vector[(year-first_year)*len(months)+month-1] = dataset["mean"]
     dates, means = fu.interp_missing_months(temp_vector)
+    graph = {"x": [], "y": []}
+    graph["y"] = temp_vector.tolist()
+    for year in range(first_year, last_year+1):
+        for month in range(1, 13):
+            graph["x"].append(year+(month/12))
+    plot_xy(graphs=[graph],
+            names=["Monthly means"],
+            title=f'Monthly means of the equivalent water height with a filter radius of {filter_radius} km',
+            axis={"x": "Time [years]", "y": "Equivalent water height [m]"},
+            plot="save")
 
     main.datasets.append({"name": f'interpolated_monthly_ewh_means_f{filter_radius}', "ewh": means, "dates": dates})
 
     # Delete the temporary variables
-    del temp_vector, dates, means
+    del temp_vector, dates, means, graph
     
     # Plot the interpolated monthly means
     dataset = main.select_dataset(main.datasets, "name", f'interpolated_monthly_ewh_means_f{filter_radius}')
@@ -601,7 +611,7 @@ if __name__ == '__main__':
         graph["x"].append(float(date))
         graph["y"].append(float(dataset["ewh"][index]))
     main.datasets.append({"name": f'plot_interpolated_monthly_ewh_means_f{filter_radius}', "data": graph})
-    plot_xy([graph],
+    plot_xy(graphs=[graph],
             names=["Interpolated monthly means"],
             title=f'Interpolated monthly means of the equivalent water height with a filter radius of {filter_radius} km',
             axis={"x": "Time [years]", "y": "Equivalent water height [m]"},
@@ -624,7 +634,7 @@ if __name__ == '__main__':
     print(f'[Info] The linear trend of the equivalent water height is {slope} m/yr')
 
     # Convert to gigatonnes per year
-    gigatonnes = slope * mass * rho_water / 1e9
+    gigatonnes = slope * mass * rho_water / 1e12
 
     print(f'[Info] The linear trend of the equivalent water height is {gigatonnes} Gt/yr')
 
