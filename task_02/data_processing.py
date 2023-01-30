@@ -308,6 +308,30 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
     return(new_dataset)
 
 
+def interpolate_missing_data(values):
+    """
+    This function is used to interpolate the missing data in the datasets.
+    """
+    # create date vector
+    startyr = 2003
+    endyear = 2016
+    mn = np.array(range(1,13))
+    yr = np.array(range(startyr,endyear+1))
+
+    # convert to decimal years
+    dec_yr = []
+    for year in yr:
+        for month in mn:
+            dec_yr.append(year+((month-1)/12))
+
+    dec_yr = np.array(dec_yr)
+
+    # interpolate missing data
+    for i in range(np.shape(values)[0]):
+        if(values[i] == 0):
+            values[i] = np.mean([float(values[i-1]), float(values[i+1])])
+    return(dec_yr, values)
+
 def gaussian_filtering_factors(degree, filter_radius=200):
     """
     This function is used to calculate the gaussian filtering factors.
@@ -370,6 +394,7 @@ def plot_xy(diagrams, names=["measurement"], title="automatic", plot="show", axi
     elif(plot == "save"):
         plt.savefig(title + ".png")
     plt.cla()
+
 
 # Beginning of the Main Programm
 # -----------------------------------------------------------------------------
@@ -587,49 +612,41 @@ if __name__ == '__main__':
     # Delete the temporary variables
     del new_dataset
 
+
     # Interpolate the missing months
-    temp_vector = np.zeros(len(months)*(last_year-first_year+1))*np.nan
+    temp_vector = np.zeros(len(months)*(last_year-first_year+1)) #*np.nan
     graph_means = {"x": [], "y": []}
     for dataset in main.select_dataset(main.datasets, "name", f'collection_of_monthly_ewh_means_f{filter_radius}')["data"]:
         month = int(dataset["date"].split("-")[1])
         year = int(dataset["date"].split("-")[0])
         temp_vector[(year-first_year)*len(months)+month-1] = dataset["mean"]
-    temp_vector_2 = []
-    for year in range(last_year-first_year+1):
-        for month in range(len(months)):
-            if (temp_vector[year*len(months)+month] is not np.nan):
-                temp_vector_2.append(float(temp_vector[year*len(months)+month]))
-    dates, means = fu.interp_missing_months(np.array(temp_vector_2))
-    print(dates, means)
+    dates, means = interpolate_missing_data(temp_vector)
+
+    # Save the interpolated monthly means
+    new_dataset = {"name": f'interpolated_monthly_ewh_means_f{filter_radius}', "ewh": means, "dates": dates}
+
+    # Plot the uninterpolated monthly means
     graph_means["y"] = temp_vector
-    for year in range(last_year-first_year+1):
-        for month in range(len(months)):
-            graph_means["x"].append(year+(month/12)+first_year)
+    graph_means["x"] = dates
     plot_xy([graph_means],
             names=["Monthly means"],
             title=f'Monthly means of the equivalent water height with a filter radius of {filter_radius} km',
             axis={"x": "Time [years]", "y": "Equivalent water height [m]"},
             plot="save")
 
-    main.datasets.append({"name": f'interpolated_monthly_ewh_means_f{filter_radius}', "ewh": means, "dates": dates})
+    main.datasets.append(new_dataset)
 
-    # Delete the temporary variables
-    del temp_vector, dates, means, graph_means
-    
     # Plot the interpolated monthly means
-    dataset = main.select_dataset(main.datasets, "name", f'interpolated_monthly_ewh_means_f{filter_radius}')
-    graph_int_means = {"x": [], "y": []}
-    for index, date in enumerate(dataset["dates"]):
-        if(dataset["ewh"][index] != np.nan):
-            graph_int_means["x"].append(float(date))
-            graph_int_means["y"].append(float(dataset["ewh"][index]))
-    main.datasets.append({"name": f'plot_interpolated_monthly_ewh_means_f{filter_radius}', "data": graph_int_means})
-    plot_xy([graph_int_means],
-            names=["Interpolated monthly means"],
+    graph_means["y"] = means
+    graph_means["x"] = dates
+    plot_xy([graph_means],
+            names=["Monthly means"],
             title=f'Interpolated monthly means of the equivalent water height with a filter radius of {filter_radius} km',
             axis={"x": "Time [years]", "y": "Equivalent water height [m]"},
             plot="save")
-    del graph_int_means, dataset
+
+    # Delete the temporary variables
+    del temp_vector, dates, means, graph_means, new_dataset
 
     print(f'[Done] Task F')
 
@@ -638,8 +655,8 @@ if __name__ == '__main__':
     # -----------------------------------------------
 
     # Calculate the linear trend
-    timeseries = main.select_dataset(main.datasets, "name", f'plot_interpolated_monthly_ewh_means_f{filter_radius}')["data"]["y"]
-    time = main.select_dataset(main.datasets, "name", f'plot_interpolated_monthly_ewh_means_f{filter_radius}')["data"]["x"]
+    timeseries = main.select_dataset(main.datasets, "name", f'interpolated_monthly_ewh_means_f{filter_radius}')["ewh"]
+    time = main.select_dataset(main.datasets, "name", f'interpolated_monthly_ewh_means_f{filter_radius}')["dates"]
     timeseries = np.array(timeseries)
     time = np.array(time)
     slope = (len(timeseries) * np.sum(time*timeseries) - np.sum(time) * np.sum(timeseries)) / (len(time)*np.sum(time*time) - np.sum(time) ** 2)
@@ -655,7 +672,6 @@ if __name__ == '__main__':
     del timeseries, time, slope, gigatonnes
 
     print(f'[Done] Task G')
-
 
     # Post-processing
     # -----------------------------------------------
