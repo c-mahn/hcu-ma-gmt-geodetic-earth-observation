@@ -522,7 +522,7 @@ if __name__ == '__main__':
 
     length = len(main.select_dataset(main.datasets, "name", "grace_augmented")["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", "grace_augmented")["data"]):
-        print(f'[Info][{index}/{length}] Computing monthly datasets with the filtered spherical harmonic coefficients "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")
+        print(f'[Info][{index}/{length}] Computing monthly datasets "{dataset["date"]}" with filter radius of {filter_radius} km', end="\r")
         new_dataset["data"].append(apply_gaussian_filtering(dataset["data"], filter_radius=filter_radius))
         new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
     main.datasets.append(new_dataset)
@@ -545,7 +545,7 @@ if __name__ == '__main__':
 
     length = len(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"]):
-        print(f'[Info][{index}/{length}] Computing monthly solution of equivalent water height "{dataset["date"]}" with the selected filter radius {filter_radius} km', end="\r")  # Progress bar
+        print(f'[Info][{index}/{length}] Computing monthly solution "{dataset["date"]}" with filter radius of {filter_radius} km', end="\r")  # Progress bar
         new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
         new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km_region_bounding_box'
         new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
@@ -566,6 +566,9 @@ if __name__ == '__main__':
 
     print(f'[Info][Done] Computing monthly solutions of equivalent water height with the selected filter radius {filter_radius} km')
 
+    print(f'Area of region bounding box: {np.sum(new_dataset["data"][-1]["area_weights"]*radius**2)/1000000:.2f} km²')
+    print(f'Area of region polygon: {np.sum(new_dataset_2["data"][-1]["area_weights"]*radius**2)/1000000:.2f} km²')
+    
     # Delete the temporary variables
     del length, index, dataset, new_dataset, new_dataset_2
 
@@ -596,7 +599,8 @@ if __name__ == '__main__':
         for month in range(len(months)):
             if (temp_vector[year*len(months)+month] is not np.nan):
                 temp_vector_2.append(float(temp_vector[year*len(months)+month]))
-    dates, means = fu.interp_missing_months(np.array(temp_vector))
+    dates, means = fu.interp_missing_months(np.array(temp_vector_2))
+    print(dates, means)
     graph_means["y"] = temp_vector
     for year in range(last_year-first_year+1):
         for month in range(len(months)):
@@ -616,7 +620,7 @@ if __name__ == '__main__':
     dataset = main.select_dataset(main.datasets, "name", f'interpolated_monthly_ewh_means_f{filter_radius}')
     graph_int_means = {"x": [], "y": []}
     for index, date in enumerate(dataset["dates"]):
-        if(dataset["ewh"][index] is not np.nan):
+        if(dataset["ewh"][index] != np.nan):
             graph_int_means["x"].append(float(date))
             graph_int_means["y"].append(float(dataset["ewh"][index]))
     main.datasets.append({"name": f'plot_interpolated_monthly_ewh_means_f{filter_radius}', "data": graph_int_means})
