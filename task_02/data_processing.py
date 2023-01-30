@@ -554,8 +554,8 @@ if __name__ == '__main__':
         new_dataset_2["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
 
         # Apply the area weighting
-        new_dataset["data"][-1]["ewh"] *= new_dataset["data"][-1]["area_weights"]
-        new_dataset_2["data"][-1]["ewh"] *= new_dataset_2["data"][-1]["area_weights"]
+        new_dataset["data"][-1]["ewh"] *= new_dataset["data"][-1]["area_weights"]*radius**2
+        new_dataset_2["data"][-1]["ewh"] *= new_dataset_2["data"][-1]["area_weights"]*radius**2
 
         # Compute mean
         new_dataset["data"][-1]["mean"] = np.mean(new_dataset["data"][-1]["ewh"])
@@ -643,7 +643,7 @@ if __name__ == '__main__':
     print(f'[Info] The linear trend of the equivalent water height is {slope} m/yr')
 
     # Convert to gigatonnes per year
-    gigatonnes = slope * mass * rho_water / 1e12
+    gigatonnes = slope * mass * rho_water / 1e9
 
     print(f'[Info] The linear trend of the equivalent water height is {gigatonnes} Gt/yr')
 
