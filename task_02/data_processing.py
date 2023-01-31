@@ -29,15 +29,15 @@ import functions as fu
 # Constants
 # -----------------------------------------------------------------------------
 
-gravity_constant    = 3.986005000e+14   # m^3 / (kg * s^2)
-normal_gravity      = 9.80665           # m / s^2
-radius              = 6.378137000e+06   # m
-mass                = 5.9722*10**24     # kg
-degree_n            = 80
-order_m             = degree_n/2                
-rho_grad            = 180/np.pi
-rho_water           = 1000              # kg / m^3  
-grid_spacing        = 1                 # degree
+gravity_constant = 3.986005000e+14   # m^3 / (kg * s^2)
+normal_gravity = 9.80665           # m / s^2
+radius = 6.378137000e+06   # m
+mass = 5.9722*10**24     # kg
+degree_n = 80
+order_m = degree_n/2
+rho_grad = 180/np.pi
+rho_water = 1000              # kg / m^3
+grid_spacing = 1                 # degree
 
 
 # Other Variables
@@ -53,6 +53,7 @@ selected_date = "2008-04"  # April 2008
 # Functions
 # -----------------------------------------------------------------------------
 
+
 def import_gfc(filename):
     """
     This function is used to import gfc-files.
@@ -62,7 +63,7 @@ def import_gfc(filename):
         ignore_until (str, optional): This is the key until everthing in the header will be ignored. Defaults to "end_of_head".
     """
     # print(f'[Info] Importing file "{filename}" as gfc-file')
-    ignore_until="end_of_head"
+    ignore_until = "end_of_head"
     ignore = True
     data = []
     for line in open(filename):  # Open file and read line by line
@@ -74,7 +75,7 @@ def import_gfc(filename):
         else:
             line = line.split(" ")
             line = list(filter(None, line))  # Remove empty strings
-            if(line[0] == "gfc" and int(line[1]) <=degree_n):            
+            if(line[0] == "gfc" and int(line[1]) <= degree_n):
                 # Read the data
                 line = {"L": int(line[1]),
                         "M": int(line[2]),
@@ -165,7 +166,7 @@ def export_data(dataset):
         pass
 
 
-def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
+def assemble_matrix(data, value_index, coord_indices=["L", "M"]):
     """
     This function is used to assemble a matrix from the data.
 
@@ -184,7 +185,7 @@ def assemble_matrix(data, value_index, coord_indices = ["L", "M"]):
         if line[coord_indices[1]] > dimension_y:
             dimension_y = line[coord_indices[1]]
     # print(f'[Info] Assemble matrix {dimension_x+1}x{dimension_y+1} ({coord_indices[0]} x {coord_indices[1]})')
-    matrix = np.zeros((dimension_x+1,dimension_y+1))
+    matrix = np.zeros((dimension_x+1, dimension_y+1))
     matrix = matrix.tolist()
 
     # Assemble the matrix
@@ -245,7 +246,8 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
     for i in range(len(lamda)):
         lamda_i = float(lamda[i])
         theta_i = float(theta[i])
-        P = fu.legendreFunctions(theta_i, max_degree)  # Calculate the legendre functions
+        # Calculate the legendre functions
+        P = fu.legendreFunctions(theta_i, max_degree)
         sum_outer = 0
         for n in range(max_degree):
             sum_inner = 0
@@ -261,7 +263,7 @@ def calc_EWH(lamda, theta, cnm, snm, M, R, rho, k):
 def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
     """
     This function is used to apply the EWH to a given dataset.
-    
+
     Args:
         dataset (dict): Dataset containing the spherical harmonic coefficients.
         M (int): mass of the earth in kg
@@ -270,7 +272,7 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
         k (float): vector of Load Love numbers until same degree as given cnm and snm.
         spacing (int, optional): Spacing of the grid in degrees. Defaults to 1.
         area (list, optional): Area for which the EWH shall be calculated. Defaults to None and the whole earth is used.
-        
+
     Returns:
         dict: Dataset containing the EWH with keys "longitudes", "colatitudes" and "data".
             longitudes (list): List of longitudes.
@@ -296,14 +298,16 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
     theta = np.radians(90-pixels[:, 1])
 
     # Cut the k vector to the same length as the cnm and snm
-    k = k[0:np.shape(dataset["C"])[0]]  # Needed for the fast version (in the slow version the other values are ignored)
+    # Needed for the fast version (in the slow version the other values are ignored)
+    k = k[0:np.shape(dataset["C"])[0]]
 
     # Calculate the EWH (either fast or slow)
     # result = calc_EWH(lamda, theta, np.array(dataset["C"]), np.array(dataset["S"]), M, R, rho, k)
     result = fu.calc_EWH_fast(lamda, theta, dataset["C"], dataset["S"], M, R, rho, k)
 
     # Create the new dataset and return it
-    new_dataset = {"lamda": pixels[:, 0], "theta": pixels[:, 1], "ewh": result, "area_weights": area_weight}
+    new_dataset = {"lamda": pixels[:, 0], "theta": pixels[:,
+                                                          1], "ewh": result, "area_weights": area_weight}
     return(new_dataset)
 
 
@@ -314,8 +318,8 @@ def interpolate_missing_data(values):
     # create date vector
     startyr = 2003
     endyear = 2016
-    mn = np.array(range(1,13))
-    yr = np.array(range(startyr,endyear+1))
+    mn = np.array(range(1, 13))
+    yr = np.array(range(startyr, endyear+1))
 
     # convert to decimal years
     dec_yr = []
@@ -330,6 +334,7 @@ def interpolate_missing_data(values):
         if(values[i] == 0):
             values[i] = np.mean([float(values[i-1]), float(values[i+1])])
     return(dec_yr, values)
+
 
 def gaussian_filtering_factors(degree, filter_radius=500):
     """
@@ -350,7 +355,7 @@ def gaussian_filtering_factors(degree, filter_radius=500):
     return(w)
 
 
-def apply_gaussian_filtering(dataset, degree="auto", filter_radius=500):
+def apply_gaussian_filtering(dataset, filter_radius=500):
     """
     This function is used to apply the gaussian filtering to a dataset.
 
@@ -360,25 +365,30 @@ def apply_gaussian_filtering(dataset, degree="auto", filter_radius=500):
         filter_radius (int, optional): Filter radius in kilometers. Defaults to 200000.
     """
     for scalar in ["C", "S"]:
-        if(degree == "auto"):
-            degree = np.shape(dataset[scalar])[0]
+        dataset[scalar] = dataset[scalar].tolist()
+        degree = np.shape(dataset[scalar])[0]
         w = gaussian_filtering_factors(degree, filter_radius)
         for n in range(len(dataset[scalar])):
             for m in range(len(dataset[scalar][n])):
                 dataset[scalar][n][m] *= w[n]
+        dataset[scalar] = np.array(dataset[scalar])
     return(dataset)
 
 
-def plot_xy(diagrams, names=["measurement"], title="automatic", plot="show", axis={"x": "x", "y": "y"}):
+def plot_xy(diagrams, names=["measurement"], title="automatic", plot="show", axis={"x": "x", "y": "y"}, log={"x": False, "y": False}):
     """
     This function is used to plot graphs in the x-y-plane.
-    
+
     Args:
         graphs (list): List of graphs to plot. Defaults to [{"x": [0, 1], "y": [0, 1]}] as an example.
         names (list, optional): List of names for the graphs. Defaults to ["measurement"].
         title (str, optional): Title of the plot. Defaults to "automatic". When set to "automatic" the title will be the same as the first name.
         plot (str, optional): Defines if the plot should be shown or saved. Defaults to "show".
     """
+    if(log["x"]):
+        plt.xscale("log")
+    if(log["y"]):
+        plt.yscale("log")
     if(title == "automatic"):
         title = names[0]
     for item in diagrams:
@@ -399,17 +409,17 @@ def plot_xy(diagrams, names=["measurement"], title="automatic", plot="show", axi
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    
+
     # Importing all datasets
     # - - - - - - - - - - - -
 
     for index, dataset in enumerate(main.datasets):
-        print(f'[Info][{index+1}/{len(main.datasets)}] Importing dataset: {dataset["name"]}')
+        print(
+            f'[Info][{index+1}/{len(main.datasets)}] Importing dataset: {dataset["name"]}')
         main.datasets[index]["data"] = import_data(dataset)
     print(f'[Info] Importing datasets finished')
 
     print(f'[Done] Task A')
-
 
     # Create dataset of the augmented gravity field model of each month
     # -----------------------------------------------------------------
@@ -418,32 +428,37 @@ if __name__ == '__main__':
     new_dataset = {"name": "grace_augmented", "data": []}
 
     # Load the static grace observation model and assemble it into matrices
-    itsg_grace_static = main.select_dataset(main.datasets, "name", "ITSG-Grace2018s.gfc")
+    itsg_grace_static = main.select_dataset(
+        main.datasets, "name", "ITSG-Grace2018s.gfc")
     for variable in ["C", "S", "sigma_C", "sigma_S"]:
-        itsg_grace_static[variable] = assemble_matrix(itsg_grace_static["data"], value_index=variable)
+        itsg_grace_static[variable] = assemble_matrix(
+            itsg_grace_static["data"], value_index=variable)
 
-    length = len(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"])  # Just for the progress bar
+    length = len(main.select_dataset(main.datasets, "name",
+                 "ITSG-Grace")["data"])  # Just for the progress bar
     for index, itsg_grace in enumerate(main.select_dataset(main.datasets, "name", "ITSG-Grace")["data"]):
-        print(f'[Info][{index+1}/{length}] Creating augmented grace-dataset ({itsg_grace["date"]})', end="\r")  # Progress bar
+        # Progress bar
+        print(
+            f'[Info][{index+1}/{length}] Creating augmented grace-dataset ({itsg_grace["date"]})', end="\r")
         new_itsg_grace_dataset = itsg_grace
-        
+
         # Load the corresponding deg1 coefficients
         deg1_dataset = []
         for dataset in main.select_dataset(main.datasets, "name", "deg1")["data"]:
             if(dataset["date"] == itsg_grace["date"]):  # Selecting the correct dataset
                 deg1_dataset = dataset
                 break
-        
+
         for variable in ["C", "S", "sigma_C", "sigma_S"]:
             # Assemble monthly grace observations into matrices
             new_itsg_grace_dataset[variable] = assemble_matrix(new_itsg_grace_dataset["data"], value_index=variable)
-            
+
             # - static grace model
             new_itsg_grace_dataset[variable] = matrix_math(new_itsg_grace_dataset[variable], itsg_grace_static[variable], operator="-")
-            
+
             # Assemble the deg1 coefficients into matrices
             deg1_dataset[variable] = assemble_matrix(deg1_dataset["data"], value_index=variable)
-            
+
             # + monthly grace coefficients
             new_itsg_grace_dataset[variable] = matrix_math(new_itsg_grace_dataset[variable], deg1_dataset[variable], operator="+")
 
@@ -462,24 +477,23 @@ if __name__ == '__main__':
 
     print(f'[Done] Task B')
 
-
     # Calculate the unfiltered equivalent water height
     # ------------------------------------------------
-    
+
     print(f'[Info] Calculating the unfiltered equivalent water height', end="\r")
     selected_grace = main.select_dataset(main.select_dataset(main.datasets, "name", "grace_augmented")["data"], "date", selected_date)["data"]
 
     # Loading the love numbers
     love_numbers = main.select_dataset(main.datasets, "name", "loadLoveNumbers_Gegout97.txt")["data"]
-    
-    new_dataset = apply_ewh(selected_grace, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+
+    new_dataset = apply_ewh(selected_grace, mass, radius, rho_water, love_numbers, spacing=grid_spacing,
+                            area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
     new_dataset["name"] = f'ewh_{selected_date}'
     main.datasets.append(new_dataset)
     del new_dataset  # Remove the temporary variable
     print(f'[Info][Done] Calculating the unfiltered equivalent water height')
 
     print(f'[Done] Task C')
-
 
     # Filtering of the spherical harmonic coefficients
     # ------------------------------------------------
@@ -488,67 +502,108 @@ if __name__ == '__main__':
     grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=filter_radius)
     main.datasets.append({"name": f'grace_{selected_date}_filtered_{filter_radius}km',
                           "data": grace_single_filtered})
-    
+
     print(f'[Info][Done] Creating new dataset for the filtered spherical harmonic coefficients')
-    
+
     # Create dataset with the ewh for the region of interest (filtered)
     print(f'[Info] Creating dataset with the ewh for the region of interest (filtered)', end="\r")
-    new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+    new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing,
+                            area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
     new_dataset["name"] = f'ewh_{selected_date}_filtered_{filter_radius}km'
     main.datasets.append(new_dataset)
-    del new_dataset  # Remove the temporary variable
+    del new_dataset, grace_single_filtered  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered)')
 
     # Again, but with different filter radii
-    new_dataset = {"name": f'ewh_grace_{selected_date}_filtered_for_different_radii', "data": []}
-    new_dataset_2 = {"name": f'grace_{selected_date}_filtered_for_different_radii', "data": []}
-    print(f'[Info] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
+    temp_list_for_plotting = []
+    print(f'[Info] Creating datasets with the ewh for the region of interest (filtered) for different filter radii', end="\r")
     for index, radius_i in enumerate(filter_radii):
         print(f'[Info][{index}/{len(filter_radii)}] Creating dataset with the ewh for the region of interest (filtered) for different filter radii', end="\r")
         grace_single_filtered = apply_gaussian_filtering(selected_grace, filter_radius=radius_i)
-        new_dataset["data"].append(apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
-        new_dataset["data"][-1]["name"] = f'ewh_{selected_date}_filtered_{radius_i}km'
-        new_dataset_2["data"].append(grace_single_filtered)
-        new_dataset_2["data"][-1]["name"] = f'grace_{selected_date}_filtered_{radius_i}km'
-    main.datasets.append(new_dataset)
-    main.datasets.append(new_dataset_2)
+        new_dataset = apply_ewh(grace_single_filtered, mass, radius, rho_water, love_numbers, spacing=grid_spacing,
+                                area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"])
+        new_dataset["name"] = f'ewh_{selected_date}_filtered_for_{radius_i}km'
+        new_dataset_2 = grace_single_filtered
+        new_dataset_2["name"] = f'grace_{selected_date}_filtered_for_{radius_i}km'
+        main.datasets.append(new_dataset)
+        main.datasets.append(new_dataset_2)
+        temp_list_for_plotting.append(new_dataset_2)
     del new_dataset, new_dataset_2, radius_i  # Remove the temporary variable
     print(f'[Info][Done] Creating dataset with the ewh for the region of interest (filtered) for different filter radii')
 
-    # Plot signal degree variances
-    datasets = main.select_dataset(main.datasets, "name", f'grace_{selected_date}_filtered_for_different_radii')["data"]
-    coeff_sets = []
-    for radius_i in filter_radii:
-        coeff_sets.append(gaussian_filtering_factors(degree_n, radius_i))
+    # Plot of the gaussian filtering factors
 
-    graphs = []
-    for coeffs in coeff_sets:
+    # List of all the gaussian filtering factors for different filter radii
+    gaussian_factor_sets = []
+    for radius_i in filter_radii:
+        gaussian_factor_sets.append(gaussian_filtering_factors(degree_n, radius_i))
+
+    graphs = []  # List of all the graphs, that will be plotted in the diagram
+    for factors in gaussian_factor_sets:
         x_values = []
         y_values = []
-        for index, coeff in enumerate(coeffs):
+        for index, factor in enumerate(factors):
             x_values.append(index)
-            y_values.append(float(coeff))
+            y_values.append(float(factor))
         graphs.append({"x": x_values, "y": y_values})
 
     plot_xy(graphs,
             names=filter_radii,
-            title=f'Signal degree variances for different filter radii',
+            title=f'Gaussian filtering factors for different filter radii',
             axis={"x": "Degree", "y": "Factor"},
             plot="save")
 
-    del datasets, coeff_sets, index, radius_i, graphs, x_values, y_values, coeffs, coeff  # Remove the temporary variable
+    # Remove the temporary variable
+    del gaussian_factor_sets, index, radius_i, graphs, x_values, y_values, factors, factor
+
+    # Plot of the degree variances for different filter radii
+
+    graphs = []  # List of all the graphs, that will be plotted in the diagram
+    names = []  # List of all the names of the graphs
+
+    degree_variances = []  # List of all the degree variances for different filter radii
+    for index, radius_i in enumerate(filter_radii):
+        dataset = temp_list_for_plotting[index]
+        graph_c = {"x": [], "y": []}
+        graph_s = {"x": [], "y": []}
+        c = dataset["C"]
+        s = dataset["S"]
+        for n, line in enumerate(c):
+            variance_sum_c = 0
+            variance_sum_s = 0
+            for m, entry in enumerate(c[n]):
+                variance_sum_c += c[n][m]**2
+                variance_sum_s += s[n][m]**2
+            graph_c["x"].append(n)
+            graph_c["y"].append(variance_sum_c)
+            graph_s["x"].append(n)
+            graph_s["y"].append(variance_sum_s)
+        graphs.append(graph_c)
+        graphs.append(graph_s)
+        names.append(f'C_{radius_i}km')
+        names.append(f'S_{radius_i}km')
+
+    for index, graph in enumerate(graphs):
+        plot_xy([graph],
+                names=f'{names[index]}',
+                title=f'Degree variances for different filter radii ({names[index]})',
+                axis={"x": "Degree", "y": "Variance"},
+                log={"x": False, "y": True},
+                plot="save")
 
     # Computing monthly solutions with a selected filter radius
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
+
     # Create new dataset for the monthly spherical harmonic coefficients
     new_dataset = {"name": f'monthly_grace_coefficients_filtered_{filter_radius}km', "data": []}
 
     length = len(main.select_dataset(main.datasets, "name", "grace_augmented")["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", "grace_augmented")["data"]):
         print(f'[Info][{index}/{length}] Computing monthly datasets "{dataset["date"]}" with filter radius of {filter_radius} km', end="\r")
-        new_dataset["data"].append(apply_gaussian_filtering(dataset["data"], filter_radius=filter_radius))
-        new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
+        new_dataset["data"].append(apply_gaussian_filtering(
+            dataset["data"], filter_radius=filter_radius))
+        # Add the date to the dataset
+        new_dataset["data"][-1]["date"] = dataset["date"]
     main.datasets.append(new_dataset)
 
     print(f'[Info][Done] Computing monthly datasets with the filtered spherical harmonic coefficients with the selected filter radius {filter_radius} km')
@@ -559,10 +614,9 @@ if __name__ == '__main__':
 
     print(f'[Done] Task D')
 
-
     # Computation of a time series of region averages
     # -----------------------------------------------
-    
+
     # Create new dataset for the monthly equivalent water height
 
     new_dataset = {"name": f'monthly_ewh_filtered_{filter_radius}km_region_bounding_box', "data": []}
@@ -570,13 +624,18 @@ if __name__ == '__main__':
 
     length = len(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"])  # Just for the progress bar
     for index, dataset in enumerate(main.select_dataset(main.datasets, "name", f'monthly_grace_coefficients_filtered_{filter_radius}km')["data"]):
-        print(f'[Info][{index}/{length}] Computing monthly solution "{dataset["date"]}" with filter radius of {filter_radius} km', end="\r")  # Progress bar
-        new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
+        # Progress bar
+        print(f'[Info][{index}/{length}] Computing monthly solution "{dataset["date"]}" with filter radius of {filter_radius} km', end="\r")
+        new_dataset["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing,
+                                             area=main.select_dataset(main.datasets, "name", "region_bounding_box.txt")["data"]))
         new_dataset["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km_region_bounding_box'
-        new_dataset["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
-        new_dataset_2["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing, area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"]))
+        # Add the date to the dataset
+        new_dataset["data"][-1]["date"] = dataset["date"]
+        new_dataset_2["data"].append(apply_ewh(dataset, mass, radius, rho_water, love_numbers, spacing=grid_spacing,
+                                               area=main.select_dataset(main.datasets, "name", "region_polygon.txt")["data"]))
         new_dataset_2["data"][-1]["name"] = f'ewh_{dataset["date"]}_filtered_{filter_radius}km_region_polygon'
-        new_dataset_2["data"][-1]["date"] = dataset["date"]  # Add the date to the dataset
+        # Add the date to the dataset
+        new_dataset_2["data"][-1]["date"] = dataset["date"]
 
         # Apply the area weighting
         new_dataset["data"][-1]["ewh"] *= new_dataset["data"][-1]["area_weights"]*radius**2
@@ -595,12 +654,11 @@ if __name__ == '__main__':
 
     print(f'Area of region bounding box: {np.sum(new_dataset["data"][-1]["area_weights"]*radius**2)/1000000:.2f} km²')
     print(f'Area of region polygon: {np.sum(new_dataset_2["data"][-1]["area_weights"]*radius**2)/1000000:.2f} km²')
-    
+
     # Delete the temporary variables
     del length, index, dataset, new_dataset, new_dataset_2
 
     print(f'[Done] Task E')
-
 
     # Interpolation of missing GRACE months
     # -----------------------------------------------
@@ -614,9 +672,8 @@ if __name__ == '__main__':
     # Delete the temporary variables
     del new_dataset
 
-
     # Interpolate the missing months
-    temp_vector = np.zeros(len(months)*(last_year-first_year+1)) #*np.nan
+    temp_vector = np.zeros(len(months)*(last_year-first_year+1))  # *np.nan
     graph_means = {"x": [], "y": []}
     for dataset in main.select_dataset(main.datasets, "name", f'collection_of_monthly_ewh_means_f{filter_radius}')["data"]:
         month = int(dataset["date"].split("-")[1])
@@ -651,7 +708,6 @@ if __name__ == '__main__':
     del temp_vector, dates, means, graph_means, new_dataset
 
     print(f'[Done] Task F')
-
 
     # Estimation of the linear mass trend
     # -----------------------------------------------
