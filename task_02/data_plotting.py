@@ -83,7 +83,7 @@ def plot_sherical_harmonics(file_name="test",
 
 if __name__ == '__main__':
     # Plotting of the EWH
-    filter_radii = filter_radii = [100, 250, 500, 750]
+    filter_radii = [100, 200, 300, 400, 500]
     """
     for year in range(2003, 2016):
         for month in range(1, 13):
@@ -120,10 +120,15 @@ if __name__ == '__main__':
                     pass
     """
 
+
+
+    # British Columbia, Canada
+
+
     # Plot the unfiltered EWH
     plot_sherical_harmonics(file_name="ewh_2008-04",
                             img_type="png",
-                            grid_resolution="0.5",
+                            grid_resolution="1",
                             file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
                             map_projection="B-130/65/45/65/18c",
                             region ="-145/-110/45/65",
@@ -133,12 +138,12 @@ if __name__ == '__main__':
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
                             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
                             )
-    
+
     # Plot the filtered EWH for the different filter radii
     for filter_radius in filter_radii:
         plot_sherical_harmonics(file_name=f"ewh_2008-04_filtered_{filter_radius}km",
                                 img_type="png",
-                                grid_resolution="0.5",
+                                grid_resolution="1",
                                 file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
                                 map_projection="B-130/65/45/65/18c",
                                 region ="-145/-110/45/65",
@@ -146,21 +151,71 @@ if __name__ == '__main__':
                                 title="British Columbia, Canada",
                                 subtitle=f"Gauss-filtered equivalent water heights (EWH) 2008-04, r={filter_radius} km",
                                 editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
-                                colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                                colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.05+l"EWH [m]" -V'
                                 )
 
-
+    
     """
-    plot_sherical_harmonics(file_name="monthly_ewh_filtered_300km_2008-04",
+    # Greenland
+    # Plot the unfiltered EWH
+    plot_sherical_harmonics(file_name="ewh_2008-04",
                             img_type="png",
-                            grid_resolution="0.5",
+                            grid_resolution="1",
                             file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
-                            map_projection="B-130/65/45/65/18c",
-                            region ="-145/-110/45/65",
+                            map_projection="B-40/70/45/65/18c",
+                            region ="-60/-20/55/85",
                             color_palette="haxby",
-                            title="British Columbia, Canada",
-                            subtitle="Filtered (R=300 km) equivalent water heights (EWH) 2008-04",
+                            title="Greenland",
+                            subtitle="Unfiltered equivalent water heights (EWH) 2008-04",
                             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
                             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
                             )
-    """
+    
+    
+    # Plot the filtered EWH for the different filter radii
+    for filter_radius in filter_radii:
+        plot_sherical_harmonics(file_name=f"ewh_2008-04_filtered_{filter_radius}km",
+                                img_type="png",
+                                grid_resolution="1",
+                                file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                                map_projection="B-40/70/45/65/18c",
+                                region ="-60/-20/55/85",
+                                color_palette="haxby",
+                                title="Greenland",
+                                subtitle=f"Gauss-filtered equivalent water heights (EWH) 2008-04, r={filter_radius} km",
+                                editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                                colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                                )
+
+    
+    # World
+    # Plot the unfiltered EWH
+    plot_sherical_harmonics(file_name="ewh_2008-04",
+                            img_type="png",
+                            grid_resolution="4",
+                            file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                            map_projection="N12c",
+                            region ="-180/180/-90/90",
+                            color_palette="haxby",
+                            title="World",
+                            subtitle="Unfiltered equivalent water heights (EWH) 2008-04",
+                            editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                            )
+    
+    
+    # Plot the filtered EWH for the different filter radii
+    for filter_radius in filter_radii:
+        plot_sherical_harmonics(file_name=f"ewh_2008-04_filtered_{filter_radius}km",
+                                img_type="png",
+                                grid_resolution="4",
+                                file_poly=os.path.join(main.folder_data, "region_polygon.txt"),
+                                map_projection="N12c",
+                                region ="-180/180/-90/90",
+                                color_palette="haxby",
+                                title="World",
+                                subtitle=f"Gauss-filtered equivalent water heights (EWH) 2008-04, r={filter_radius} km",
+                                editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+                                colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"EWH [m]" -V'
+                                )
+"""

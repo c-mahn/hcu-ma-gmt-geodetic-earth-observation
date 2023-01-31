@@ -37,7 +37,7 @@ degree_n            = 80
 order_m             = degree_n/2                
 rho_grad            = 180/np.pi
 rho_water           = 1000              # kg / m^3  
-grid_spacing        = 0.5
+grid_spacing        = 1                 # degree
 
 
 # Other Variables
@@ -46,10 +46,9 @@ grid_spacing        = 0.5
 first_year = 2003
 last_year = 2016
 months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
-filter_radii = [100, 250, 500, 750]
-filter_radius = 500  # km
+filter_radii = [100, 200, 300, 400, 500]
+filter_radius = 300  # km
 selected_date = "2008-04"  # April 2008
-
 
 # Functions
 # -----------------------------------------------------------------------------
@@ -294,7 +293,7 @@ def apply_ewh(dataset, M, R, rho, k, spacing=1, area=None):
 
     # Create the vectors for the coordinates
     lamda = np.radians(pixels[:, 0])
-    theta = np.radians(pixels[:, 1]+90)
+    theta = np.radians(90-pixels[:, 1])
 
     # Cut the k vector to the same length as the cnm and snm
     k = k[0:np.shape(dataset["C"])[0]]  # Needed for the fast version (in the slow version the other values are ignored)
@@ -582,6 +581,8 @@ if __name__ == '__main__':
         # Apply the area weighting
         new_dataset["data"][-1]["ewh"] *= new_dataset["data"][-1]["area_weights"]*radius**2
         new_dataset_2["data"][-1]["ewh"] *= new_dataset_2["data"][-1]["area_weights"]*radius**2
+        new_dataset["data"][-1]["ewh"] /= 1e9
+        new_dataset_2["data"][-1]["ewh"] /= 1e9
 
         # Compute mean
         new_dataset["data"][-1]["mean"] = np.mean(new_dataset["data"][-1]["ewh"])
@@ -662,12 +663,12 @@ if __name__ == '__main__':
     time = np.array(time)
     slope = (len(timeseries) * np.sum(time*timeseries) - np.sum(time) * np.sum(timeseries)) / (len(time)*np.sum(time*time) - np.sum(time) ** 2)
 
-    print(f'[Info] The linear trend of the equivalent water height is {slope} m/yr')
+    print(f'[Info] The linear trend of the equivalent water height is {slope:.2f} m/yr')
 
     # Convert to gigatonnes per year
-    gigatonnes = slope * mass * rho_water / 1e9
+    gigatonnes = slope * mass * rho_water / 1e9**3
 
-    print(f'[Info] The linear trend of the equivalent water height is {gigatonnes} Gt/yr')
+    print(f'[Info] The linear trend of the equivalent water height is {gigatonnes:.2f} Gt/yr')
 
     # Delete the temporary variables
     del timeseries, time, slope, gigatonnes
