@@ -332,13 +332,13 @@ def interpolate_missing_data(values):
             values[i] = np.mean([float(values[i-1]), float(values[i+1])])
     return(dec_yr, values)
 
-def gaussian_filtering_factors(degree, filter_radius=200):
+def gaussian_filtering_factors(degree, filter_radius=500):
     """
     This function is used to calculate the gaussian filtering factors.
 
     Args:
         degree (int): Maximum degree for which the factors are calculated.
-        filter_radius (int, optional): Filter radius in kilometers. Defaults to 200000.
+        filter_radius (int, optional): Filter radius in kilometers. Defaults to 500.
     """
     filter_radius = filter_radius * 1000
     b = (np.log(2)) / (1-np.cos(filter_radius/radius))
@@ -351,7 +351,7 @@ def gaussian_filtering_factors(degree, filter_radius=200):
     return(w)
 
 
-def apply_gaussian_filtering(dataset, degree="auto", filter_radius=200):
+def apply_gaussian_filtering(dataset, degree="auto", filter_radius=500):
     """
     This function is used to apply the gaussian filtering to a dataset.
 
@@ -565,6 +565,7 @@ if __name__ == '__main__':
     # -----------------------------------------------
     
     # Create new dataset for the monthly equivalent water height
+
     new_dataset = {"name": f'monthly_ewh_filtered_{filter_radius}km_region_bounding_box', "data": []}
     new_dataset_2 = {"name": f'monthly_ewh_filtered_{filter_radius}km_region_polygon', "data": []}
 
