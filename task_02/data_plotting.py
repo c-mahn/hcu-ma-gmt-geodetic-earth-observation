@@ -58,7 +58,7 @@ def plot_sherical_harmonics(file_name="test",
     command += f'gmt gmtset FORMAT_GEO_MAP ddd'                                                                             # Set the format of the map
     command += f' && gmt begin {file_name} {img_type}'                                                                      # Start the plot
     command += f' && gmt xyz2grd ./output/{file_name}.csv -R{region} -r -I{grid_resolution} -G./output/{file_name}.grd -V'  # Convert the ascii file to a grid file
-    command += f' && gmt grd2cpt ./output/{file_name}.grd -C{color_palette} -Z'                                             # Create the color palette for the grid file
+    command += f' && gmt grd2cpt ./output/{file_name}.grd -T-0.25/0.25/0.05 -C{color_palette} -Z'                           # Create the color palette for the grid file
     command += f' && gmt grdimage -J{map_projection} -R{region} ./output/{file_name}.grd -Q'                                # Plot the grid file
     command += f' && gmt psxy {file_poly} -R{region} -W3,red'                                                               # Plot region polygon
     command += f' && gmt coast -Bxa5g5 -Bya5g5 -BWESN+t"{title}" -W0.25p,80/80/80 -Df -N1/1.25p,black -V'                   # Plot the coastline and the title
@@ -151,7 +151,7 @@ if __name__ == '__main__':
                                 title="British Columbia, Canada",
                                 subtitle=f"Gauss-filtered equivalent water heights (EWH) 2008-04, r={filter_radius} km",
                                 editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
-                                colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.05+l"EWH [m]" -V'
+                                colorbar_settings='-Dx0.5c/-2c+w17c/0.35c+h -B0.05+l"EWH [m]" -V'
                                 )
 
     
