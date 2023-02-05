@@ -84,11 +84,10 @@ def run_gmt(input_file_name="test_input",
     else:
         command += f' && gmt begin {output_file_name} {img_type}'                               # Start the plot
     if(sample_and_cut is True):
-        command += f' && gmt grdsample ./data/{input_file_name}.nc -G./data/{input_file_name}_{grid_resolution}.nc -I{grid_resolution}'   # Sample the grid
-        command += f' && gmt grdcut ./data/{input_file_name}_{grid_resolution}.nc -G./data/{output_file_name}.nc -R{region}'              # Cut the grid
-    command += f' && gmt grdinfo ./data/{output_file_name}.nc'                                                          # Get the information of the grid
-    command += f' && gmt makecpt -C{color_palette} -T{color_settings} -Z'                                               # Create the color palette
-    command += f' && gmt grd2cpt ./data/{output_file_name}.nc -C{color_palette} -Z'                                     # Apply the color palette
+        command += f' && gmt grdsample ./data/{input_file_name}.nc -G./data/{input_file_name}_{grid_resolution}.nc -I{grid_resolution}'     # Sample the grid
+        command += f' && gmt grdcut ./data/{input_file_name}_{grid_resolution}.nc -G./data/{output_file_name}.nc -R{region}'                # Cut the grid
+    command += f' && gmt grdinfo ./data/{output_file_name}.nc'                                                                              # Get the information of the grid
+    command += f' && gmt grd2cpt ./data/{output_file_name}.nc -T{color_settings} -C{color_palette} -Z'                                      # Apply the color palette
     if(print_vector is True):
         command += f' && gmt grdimage -J{map_projection} -R{region} ./data/{output_file_name}.nc -Q'                    # Plot the grid
         command += f' && gmt grdvector ./data/{vector_1}.nc ./data/{vector_2}.nc -WRed -Ix2 -S2 -Q0.2+e'                # Plot the vectors
@@ -149,6 +148,17 @@ if __name__ == '__main__':
             sample_and_cut=True,
             grid_resolution="30m",
             )
+ 
+    # Plotting the grid-data saved with the function run_gmt
+
+    run_gmt(input_file_name="DTU15MDT_30min_cut.mdt",
+            grid_resolution="30m",
+            color_settings="-1/1/0.2",
+            subtitle="Magnitude of geostrophic surface velocity",
+            editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
+            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"MDT [m]" -V'
+            )
+     
     # Importing the grid-data with netCDF4 and saving it with the function save_grid
 
     data_mdt = nc.Dataset(os.path.join(f'./data/DTU15MDT_30min_cut.mdt.nc'))
@@ -157,34 +167,26 @@ if __name__ == '__main__':
     mdt = data_mdt.variables["z"][:]
     fu.save_grid(os.path.join(f'./data/DTU15MDT_30min_cut_pyout.mdt.nc'), mdt, lon, lat)
 
-    # Plotting the grid-data saved with the function save_grid
-
-    run_gmt(input_file_name="DTU15MDT_30min_cut.mdt",
-            grid_resolution="30m",
-            color_settings="-1/1/0.001",
-            subtitle="Magnitude of geostrophic surface velocity",
-            editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
-            colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.5+l"MDT [m]" -V'
-            )
-    
     # Calculation of geostrophic currents
 
     u, v = calc_velocity(mdt, lon, lat, grid_spacing=0.5)
 
     # Saving the geostrophic currents
 
+    fu.save_grid(os.path.join(f'./data/DTU15MDT_30min_velocity.mdt.nc'), np.sqrt(u**2+v**2), lon, lat)
+
     fu.save_grid(os.path.join(f'./data/velocity_components_east.mdt.nc'), u, lon, lat)
     fu.save_grid(os.path.join(f'./data/velocity_components_north.mdt.nc'), v, lon, lat)
 
     # Plotting the geostrophic current vectors
 
-    run_gmt(input_file_name="DTU15MDT_30min_cut_pyout.mdt",
+    run_gmt(input_file_name="DTU15MDT_30min_velocity.mdt",
             print_vector=True,
             vector_1="velocity_components_east.mdt",
             vector_2="velocity_components_north.mdt",
             grid_resolution="30m",
-            color_settings="-1/1/0.001",
-            subtitle="Magnitude of geostrophic surface velocity with geostrophic velocity vectors",
+            color_settings="0/0.5/0.1",
+            subtitle="Ocean current velocities with geostrophic velocity vectors",
             editors="Editors: Christopher Mahn, Silas Teske, Joshua Wolf",
             colorbar_settings='-Dx0c/-2c+w17c/0.35c+h -B0.2+l"Velocity [m/s]" -V'
             )
