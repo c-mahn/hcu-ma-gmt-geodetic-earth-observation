@@ -725,6 +725,15 @@ if __name__ == '__main__':
     gigatonnes = slope * mass * rho_water / 1e9**3
 
     print(f'[Info] The linear trend of the equivalent water height is {gigatonnes:.2f} Gt/yr')
+    
+    # Plot the linear trend
+    graphs = [{"x": time, "y": (timeseries-timeseries[0]) * mass * rho_water / 1e9**3}]
+    graphs.append({"x": time, "y": (time-first_year)*slope * mass * rho_water / 1e9**3})
+    plot_xy(graphs,
+            names=["Monthly means", "Linear trend"],
+            title=f'Linear trend of the equivalent water height with a filter radius of {filter_radius} km',
+            axis={"x": "Time [years]", "y": "Equivalent water height [Gt]"},
+            plot="save")
 
     # Delete the temporary variables
     del timeseries, time, slope, gigatonnes
