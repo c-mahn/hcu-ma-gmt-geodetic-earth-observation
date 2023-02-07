@@ -109,7 +109,6 @@ def run_gmt(input_file_name="test_input",
     else:
         shutil.move(os.path.join(f'{output_file_name}.{img_type}'), os.path.join('plots', f'{output_file_name}.{img_type}'))
 
-
 def calc_velocity(mdt, lon, lat, grid_spacing=0.5):
     u = np.zeros((len(lat), len(lon)))
     v = np.zeros((len(lat), len(lon)))
